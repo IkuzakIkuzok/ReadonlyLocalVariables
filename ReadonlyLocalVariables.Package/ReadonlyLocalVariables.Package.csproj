@@ -11,12 +11,14 @@
     <PackageId>ReadonlyLocalVariables</PackageId>
     <PackageVersion>1.0.0.0</PackageVersion>
     <Authors>ikuzak</Authors>
-    <PackageLicenseUrl>https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/blob/main/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/IkuzakIkuzok/ReadonlyLocalVariables</PackageProjectUrl>
     <RepositoryUrl>https://github.com/IkuzakIkuzok/ReadonlyLocalVariables</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Title>ReadonlyLocalVariables</Title>
     <Description>Prohibits reassignment of local variables.</Description>
-    <PackageReleaseNotes>Summary of changes made in this release of the package.</PackageReleaseNotes>
+    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     <Copyright>(c) 2022 Kazuki KOHZUKI</Copyright>
     <PackageTags>ReadonlyLocalVariables, analyzers</PackageTags>
     <DevelopmentDependency>true</DevelopmentDependency>
