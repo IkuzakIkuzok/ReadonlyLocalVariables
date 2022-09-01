@@ -8,22 +8,22 @@ class C
 {
     private static int Field = 0;
 
-    [ReassignableVariable("Local")]  // Explicitly state which local variables are allowed to be reassigned.
+    [ReassignableVariable("reassignable")]  // Explicitly state which normal variables are allowed to be reassigned.
     static void Main(string[] args)
     {
-        var local = 0;
-        var Local = 0;
+        var normal = 0;
+        var reassignable = 0;
 
-        Console.WriteLine(local);
-        Console.WriteLine(Local);
+        Console.WriteLine(normal);
+        Console.WriteLine(reassignable);
         Console.WriteLine(Field);
 
-        local = 1;  // Local variables are treated as read-only.
-        Local = 1;  // Local variable allowed to be reassigned.
-        Field = 1;  // Class members are not inspected because they have the `readonly` keyword.
+        normal = 1;        // Normal variables are treated as read-only.
+        reassignable = 1;  // Specially marked local variables can be reassigned.
+        Field = 1;         // Class members are not inspected because they have the `readonly` keyword.
 
-        Console.WriteLine(local);
-        Console.WriteLine(Local);
+        Console.WriteLine(normal);
+        Console.WriteLine(reassignable);
         Console.WriteLine(Field);
     }
 }
