@@ -42,3 +42,39 @@ class C
     }
 }
 ```
+
+## Code Fix
+
+The code fix function (implemented in v2.0.0) can correct a no-reassignment error in two ways.
+
+To prevent reassignment of local variable, a new local variable declaration can be added.
+
+```diff
+var local = 0;
+Console.WriteLine(local);
+
+-local = 1;
+-Console.WriteLine(local);
++var local1 = 1;
++Console.WriteLine(local1);
+```
+
+References below the new variable declaration are automatically updated.
+Since the automatically generated identifier names are simplified,
+it is recommended that they be refactored to appropriate names.
+
+Alternatively, reassignment can be allowed by adding an attribute.
+
+```diff
++using ReadonlyLocalVariables;
+
++[ReassignableVariable("local")]
+void Func()
+{
+    var local = 0;
+    Console.WriteLine(local);
+    
+    local = 1;
+    Console.WriteLine(local);
+}
+```
