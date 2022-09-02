@@ -56,6 +56,18 @@ namespace ReadonlyLocalVariables
             );
         } // override public Task RegisterCodeFixesAsync (CodeFixContext)
 
+        private static SyntaxNode GetMethodDeclarationSyntax(SyntaxNode node)
+        {
+            while (node is not MethodDeclarationSyntax)
+            {
+                var parent = node.Parent;
+                if (parent == null)
+                    return null;
+                node = parent;
+            }
+            return node;
+        } // private static SyntaxNode GetMethodDeclarationSyntax (SyntaxNode)
+
         private static async Task<Document> MakeNewVariable(Document document, AssignmentExpressionSyntax assignment, CancellationToken cancellationToken)
         {
             /*
@@ -109,12 +121,15 @@ namespace ReadonlyLocalVariables
                                                        .WithTrailingTrivia(trailingTrivia);
             var oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var trackingRoot = oldRoot.TrackNodes(assignmentStatement);
-            var newRoot = trackingRoot.ReplaceNode(trackingRoot.GetCurrentNode(assignmentStatement), formattedDeclaration);
+            var newAssignmentStatement = trackingRoot.GetCurrentNode(assignmentStatement);
+            var newRoot = trackingRoot.ReplaceNode(newAssignmentStatement, formattedDeclaration);
 
             var renameStartPosition = trailingTrivia.Span.End;
             var rewriter = new IdentifierNameRewriter(renameStartPosition, oldName, newName);
-            
-            return document.WithSyntaxRoot(rewriter.Visit(newRoot));
+            var oldMethod = GetMethodDeclarationSyntax(newRoot.FindToken(renameStartPosition).Parent);
+            var newMethod = rewriter.Visit(oldMethod);
+
+            return document.WithSyntaxRoot(newRoot.ReplaceNode(oldMethod, newMethod));
         } // private static async Task<Document> MakeNewVariable (Document, AssignmentExpressionSyntax, CancellationToken)
 
         /// <summary>
@@ -172,14 +187,8 @@ namespace ReadonlyLocalVariables
                 compilationUnitSyntax = compilationUnitSyntax.AddUsings(SyntaxFactory.UsingDirective(name));
             }
 
-            node = compilationUnitSyntax.GetCurrentNode(node);
-            while (node is not MethodDeclarationSyntax)
-            {
-                var parent = node.Parent;
-                if (parent == null)
-                    return document.WithSyntaxRoot(compilationUnitSyntax);
-                node = parent;
-            }
+            node = GetMethodDeclarationSyntax(compilationUnitSyntax.GetCurrentNode(node));
+            if (node == null) return document.WithSyntaxRoot(compilationUnitSyntax);
 
             var leftOperand = assignment.Left;
             var oldName = leftOperand.ChildTokens().First().ValueText;

@@ -26,4 +26,10 @@ class C
         Console.WriteLine(reassignable);
         Console.WriteLine(Field);
     }
+
+    void Foo()
+    {
+        var normal = 1;
+        Console.WriteLine(normal);
+    }
 }

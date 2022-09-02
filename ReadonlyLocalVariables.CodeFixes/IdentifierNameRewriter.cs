@@ -23,7 +23,7 @@ namespace ReadonlyLocalVariables
         {
             if (node.SpanStart < this.position) return node;
             var oldToken = node.GetFirstToken();
-            if (oldToken.ToFullString() != this.oldName) return node;
+            if (oldToken.ToString() != this.oldName) return node;
             var newToken = SyntaxFactory.Identifier(newName);
             return node.ReplaceToken(oldToken, newToken);
         } // override public SyntaxNode VisitIdentifierName (IdentifierNameSyntax)
