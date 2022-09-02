@@ -8,7 +8,7 @@ class C
 {
     private static int Field = 0;
 
-    [ReassignableVariable("reassignable")]  // Explicitly state which normal variables are allowed to be reassigned.
+    [ReassignableVariable("reassignable")]  // Explicitly state which local variables are allowed to be reassigned.
     static void Main(string[] args)
     {
         var normal = 0;
