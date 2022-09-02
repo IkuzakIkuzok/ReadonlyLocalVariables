@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReadonlyLocalVariables.Vsix
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReadonlyLocalVariables.Example", "ReadonlyLocalVariables.Example\ReadonlyLocalVariables.Example.csproj", "{ACCD4029-5D6C-49D6-9F09-9E2E7454608C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadonlyLocalVariables.Package", "ReadonlyLocalVariables.Package\ReadonlyLocalVariables.Package.csproj", "{A92B1BDF-C2B1-4086-908F-FA386CEB80E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReadonlyLocalVariables.Package", "ReadonlyLocalVariables.Package\ReadonlyLocalVariables.Package.csproj", "{A92B1BDF-C2B1-4086-908F-FA386CEB80E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadonlyLocalVariables.CodeFixes", "ReadonlyLocalVariables.CodeFixes\ReadonlyLocalVariables.CodeFixes.csproj", "{CE7D2B0B-EA28-4414-933C-A9CFB24D0586}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{A92B1BDF-C2B1-4086-908F-FA386CEB80E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A92B1BDF-C2B1-4086-908F-FA386CEB80E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A92B1BDF-C2B1-4086-908F-FA386CEB80E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE7D2B0B-EA28-4414-933C-A9CFB24D0586}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE7D2B0B-EA28-4414-933C-A9CFB24D0586}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE7D2B0B-EA28-4414-933C-A9CFB24D0586}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE7D2B0B-EA28-4414-933C-A9CFB24D0586}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
