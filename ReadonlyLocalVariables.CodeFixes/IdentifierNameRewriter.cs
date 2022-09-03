@@ -25,7 +25,7 @@ namespace ReadonlyLocalVariables
             var oldToken = node.GetFirstToken();
             if (oldToken.ToString() != this.oldName) return node;
             var newToken = SyntaxFactory.Identifier(newName);
-            return node.ReplaceToken(oldToken, newToken);
+            return node.ReplaceToken(oldToken, newToken.WithTriviaFrom(oldToken));
         } // override public SyntaxNode VisitIdentifierName (IdentifierNameSyntax)
     } // internal sealed class IdentifierNameRewriter : CSharpSyntaxRewriter
 } // namespace ReadonlyLocalVariables

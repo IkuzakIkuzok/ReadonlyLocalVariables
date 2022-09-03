@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -63,6 +64,7 @@ namespace ReadonlyLocalVariables
             if (semanticModel == null) return;
 
             var node = (AssignmentExpressionSyntax)context.Node;
+            if (node.Parent is ForStatementSyntax) return;
             var leftNode = node.Left;
             var leftSymbol = semanticModel.GetSymbolInfo(leftNode).Symbol;
             if (leftSymbol == null) return;
@@ -83,10 +85,18 @@ namespace ReadonlyLocalVariables
         private static async Task<bool> CheckMutableRulePatterns(SyntaxNode node, string name, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (node is MethodDeclarationSyntax methodDeclaration)
+
+            IEnumerable<AttributeSyntax>? attributes = null;
+            static IEnumerable<AttributeSyntax>? TryGetAttributes(SyntaxNode node)
             {
-                var attributes = methodDeclaration.AttributeLists;
-                foreach (var attribute in attributes.SelectMany(list => list.Attributes))
+                if (node is MethodDeclarationSyntax methodDeclaration) return methodDeclaration.AttributeLists.SelectMany(list => list.Attributes);
+                if (node is LocalFunctionStatementSyntax localFunction) return localFunction.AttributeLists.SelectMany(list => list.Attributes);
+                return null;
+            }
+
+            if ((attributes = TryGetAttributes(node)) != null)
+            {
+                foreach (var attribute in attributes)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var attrName = attribute.Name.ToFullString();

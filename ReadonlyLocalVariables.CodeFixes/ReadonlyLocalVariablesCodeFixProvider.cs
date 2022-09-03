@@ -56,17 +56,19 @@ namespace ReadonlyLocalVariables
             );
         } // override public Task RegisterCodeFixesAsync (CodeFixContext)
 
-        private static SyntaxNode GetMethodDeclarationSyntax(SyntaxNode node)
+        private static SyntaxNode GetMinimumScope(SyntaxNode node, out bool isLocal)
         {
-            while (node is not MethodDeclarationSyntax)
+            isLocal = false;
+            while (!(node is MethodDeclarationSyntax || node is LocalFunctionStatementSyntax))
             {
                 var parent = node.Parent;
                 if (parent == null)
                     return null;
                 node = parent;
             }
+            isLocal = node is LocalFunctionStatementSyntax;
             return node;
-        } // private static SyntaxNode GetMethodDeclarationSyntax (SyntaxNode)
+        }
 
         private static async Task<Document> MakeNewVariable(Document document, AssignmentExpressionSyntax assignment, CancellationToken cancellationToken)
         {
@@ -84,14 +86,10 @@ namespace ReadonlyLocalVariables
              */
 
             var assignmentStatement = assignment.Parent;
+            var oldLen = assignmentStatement.ToString().Length;
 
-            var firstToken = assignment.GetFirstToken();
-            var leadingTrivia = firstToken.LeadingTrivia;
-            var trimmedAssignment = assignment.ReplaceToken(firstToken, firstToken.WithLeadingTrivia(SyntaxTriviaList.Empty));
-            var trailingTrivia = assignment.Parent.GetTrailingTrivia();
-
-            var oldLeftOperand = trimmedAssignment.Left;
-            var oldRightOperand = trimmedAssignment.Right;
+            var oldLeftOperand = assignment.Left;
+            var oldRightOperand = assignment.Right;
             
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
             var oldName = oldLeftOperand.ChildTokens().First().ValueText;
@@ -117,16 +115,16 @@ namespace ReadonlyLocalVariables
             var localDeclaration = SyntaxFactory.LocalDeclarationStatement(declaration);
 
             var formattedDeclaration = localDeclaration.WithAdditionalAnnotations(Formatter.Annotation)
-                                                       .WithLeadingTrivia(leadingTrivia)
-                                                       .WithTrailingTrivia(trailingTrivia);
+                                                       .WithTriviaFrom(assignmentStatement);
             var oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var trackingRoot = oldRoot.TrackNodes(assignmentStatement);
             var newAssignmentStatement = trackingRoot.GetCurrentNode(assignmentStatement);
             var newRoot = trackingRoot.ReplaceNode(newAssignmentStatement, formattedDeclaration);
+            var newLen = formattedDeclaration.ToString().Length;
 
-            var renameStartPosition = trailingTrivia.Span.End;
+            var renameStartPosition = assignmentStatement.GetTrailingTrivia().Span.End - oldLen + newLen;
             var rewriter = new IdentifierNameRewriter(renameStartPosition, oldName, newName);
-            var oldMethod = GetMethodDeclarationSyntax(newRoot.FindToken(renameStartPosition).Parent);
+            var oldMethod = GetMinimumScope(newRoot.FindToken(renameStartPosition).Parent, out var _);
             var newMethod = rewriter.Visit(oldMethod);
 
             return document.WithSyntaxRoot(newRoot.ReplaceNode(oldMethod, newMethod));
@@ -187,7 +185,7 @@ namespace ReadonlyLocalVariables
                 compilationUnitSyntax = compilationUnitSyntax.AddUsings(SyntaxFactory.UsingDirective(name));
             }
 
-            node = GetMethodDeclarationSyntax(compilationUnitSyntax.GetCurrentNode(node));
+            node = GetMinimumScope(compilationUnitSyntax.GetCurrentNode(node), out var isClosure);
             if (node == null) return document.WithSyntaxRoot(compilationUnitSyntax);
 
             var leftOperand = assignment.Left;
@@ -198,8 +196,9 @@ namespace ReadonlyLocalVariables
             var attribute = SyntaxFactory.Attribute(attrName, attrParams);
             var attributeList = SyntaxFactory.AttributeList(new SeparatedSyntaxList<AttributeSyntax>().Add(attribute));
 
-            var newMethodDeclaration = (node as MethodDeclarationSyntax).AddAttributeLists(attributeList);
-            var newRoot = compilationUnitSyntax.ReplaceNode(node, newMethodDeclaration);
+            SyntaxNode newMethodDeclaration = isClosure ? (node as LocalFunctionStatementSyntax).AddAttributeLists(attributeList)
+                                                        : (node as MethodDeclarationSyntax).AddAttributeLists(attributeList);
+            var newRoot = compilationUnitSyntax.ReplaceNode(node, newMethodDeclaration.WithLeadingTrivia(node.GetLeadingTrivia()));
 
             return document.WithSyntaxRoot(newRoot);
         } // private static async Task<Document> AddAttribute (Document, AssignmentExpressionSyntax, CancellationToken)

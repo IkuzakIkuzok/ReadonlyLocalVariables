@@ -25,11 +25,28 @@ class C
         Console.WriteLine(normal);
         Console.WriteLine(reassignable);
         Console.WriteLine(Field);
+
+        void F()
+        {
+            var i = 0;
+            Console.WriteLine(i);
+            i = 1;
+            Console.WriteLine(i);
+
+            normal = 1;
+        }
+
+        Console.WriteLine(normal);
     }
 
     void Foo()
     {
         var normal = 1;
         Console.WriteLine(normal);
+
+        for (var i = 0; i < 10; i += 2)
+        {
+            i += i;
+        }
     }
 }
