@@ -15,13 +15,22 @@ namespace ReadonlyLocalVariables
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class ReadonlyLocalVariablesAnalyzer : DiagnosticAnalyzer
     {
+        public static readonly string DiagnosticId = "RO0001";
+
+        private static LocalizableResourceString GetLocalizableResourceString(string resourceName)
+            => new(resourceName, AnalyzerResources.ResourceManager, typeof(AnalyzerResources));
+        private static readonly LocalizableResourceString title = GetLocalizableResourceString(nameof(AnalyzerResources.AnalyzerTitle));
+        private static readonly LocalizableResourceString messageFormat = GetLocalizableResourceString(nameof(AnalyzerResources.AnalyzerMessageFormat));
+
+        private const string Category = "CodeStyle";
+
         private static readonly DiagnosticDescriptor Rule = new(
-            "RO0001",
-            "Readonly local variable",
-            "Variable '{0}' is not allowed to be reassigned.",
-            "CodeStyle",
-            DiagnosticSeverity.Error,
-            true
+            id                : DiagnosticId,
+            title             : title,
+            messageFormat     : messageFormat,
+            category          : Category,
+            defaultSeverity   : DiagnosticSeverity.Error,
+            isEnabledByDefault: true
         );
 
         override public ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
