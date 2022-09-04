@@ -118,8 +118,8 @@ namespace ReadonlyLocalVariables
                                                        .WithTriviaFrom(assignmentStatement);
             var oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var trackingRoot = oldRoot.TrackNodes(assignmentStatement);
-            var newAssignmentStatement = trackingRoot.GetCurrentNode(assignmentStatement);
-            var newRoot = trackingRoot.ReplaceNode(newAssignmentStatement, formattedDeclaration);
+            var oldAssignmentStatement = trackingRoot.GetCurrentNode(assignmentStatement);
+            var newRoot = trackingRoot.ReplaceNode(oldAssignmentStatement, formattedDeclaration);
             var newLen = formattedDeclaration.ToString().Length;
 
             var renameStartPosition = assignmentStatement.GetTrailingTrivia().Span.End - oldLen + newLen;

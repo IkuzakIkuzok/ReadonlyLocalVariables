@@ -4,6 +4,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 
 namespace ReadonlyLocalVariables
 {
@@ -21,6 +22,16 @@ namespace ReadonlyLocalVariables
 
         override public SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
         {
+            /*
+             * If the identifiers of class members and local variables conflict, 
+             * access to class members must be qualified by `this` or `base`. 
+             * In this case, the first child node of the parent node of IdentifierNameSyntax
+             * does not match the original IdentifierNameSyntax (it must be a qualifier such as `this`).
+             * The definition should be verified using SemanticModel,
+             * but since errors occur as nodes are rewritten, this method is used for simplicity.
+             */
+            if (node.Parent.ChildNodes().First() != node) return node;
+
             if (node.SpanStart < this.position) return node;
             var oldToken = node.GetFirstToken();
             if (oldToken.ToString() != this.oldName) return node;
