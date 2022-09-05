@@ -16,11 +16,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 3.1.x
+        dotnet-version: 2.0
         include-prerelease: true
     - name: Restore dependencies
-      run: dotnet restore -p:TargetFramework=netcoreapp3.1
+      run: dotnet restore -p:TargetFramework=netstandard2.0
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal -f=netcoreapp3.1
+      run: dotnet test --no-build --verbosity normal -f=netstandard2.0
