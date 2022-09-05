@@ -21,8 +21,8 @@ jobs:
           6.0.x
         include-prerelease: true
     - name: Restore dependencies
-      run: dotnet restore -p:TargetFramework=netcoreapp3.1
+      run: dotnet restore -p:TargetFramework=netcoreapp3.1 -p:TargetFramework=netstandard2.0
     - name: Build
       run: dotnet build --no-restore -p:langversion=latest
     - name: Test
-      run: dotnet test --no-build --verbosity normal -f=netcoreapp3.1
+      run: dotnet test --no-build --verbosity normal -f=netcoreapp3.1 -p:TargetFramework=netstandard2.0
