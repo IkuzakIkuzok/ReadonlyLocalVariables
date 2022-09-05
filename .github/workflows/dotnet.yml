@@ -13,10 +13,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Setup .NET
+    - name: Setup .NET SDK 6.0
       uses: actions/setup-dotnet@v2
       with:
         dotnet-version: 6.0.x
+        include-prerelease: true
+    - name: Setup .NET Code SDK 3.1
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 3.1.x
         include-prerelease: true
     - name: Restore dependencies
       run: dotnet restore -p:TargetFramework=netstandard2.0
