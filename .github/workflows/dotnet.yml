@@ -23,6 +23,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore -p:TargetFramework=netcoreapp3.1
     - name: Build
-      run: dotnet build --no-restore -p:langversion=latest
+      run: dotnet build --no-restore -p:langversion=latest -p:TargetFramework=netcoreapp3.1
     - name: Test
       run: dotnet test --no-build --verbosity normal -p:TargetFramework=netcoreapp3.1
