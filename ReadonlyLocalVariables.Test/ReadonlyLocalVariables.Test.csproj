@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ReadonlyLocalVariables\ReadonlyLocalVariables.csproj" />
+    <ProjectReference Include="..\ReadonlyLocalVariables\ReadonlyLocalVariables.Analyzer.csproj" />
     <ProjectReference Include="..\ReadonlyLocalVariables.CodeFixes\ReadonlyLocalVariables.CodeFixes.csproj" />
   </ItemGroup>
 

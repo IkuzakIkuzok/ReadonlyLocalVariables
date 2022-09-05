@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ReadonlyLocalVariables\ReadonlyLocalVariables.csproj" />
+    <ProjectReference Include="..\ReadonlyLocalVariables\ReadonlyLocalVariables.Analyzer.csproj" />
   </ItemGroup>
   
   <ItemGroup>

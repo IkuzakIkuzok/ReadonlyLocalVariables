@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -28,7 +28,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ReadonlyLocalVariables\ReadonlyLocalVariables.csproj" />
+    <ProjectReference Include="..\ReadonlyLocalVariables\ReadonlyLocalVariables.Analyzer.csproj" />
     <ProjectReference Include="..\ReadonlyLocalVariables.CodeFixes\ReadonlyLocalVariables.CodeFixes.csproj" />
   </ItemGroup>
 
@@ -38,7 +38,7 @@
 
   <Target Name="_AddAnalyzersToOutput">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)\ReadonlyLocalVariables.dll" PackagePath="analyzers/dotnet/cs" />
+      <TfmSpecificPackageFile Include="$(OutputPath)\ReadonlyLocalVariables.Analyzer.dll" PackagePath="analyzers/dotnet/cs" />
       <TfmSpecificPackageFile Include="$(OutputPath)\ReadonlyLocalVariables.CodeFixes.dll" PackagePath="analyzers/dotnet/cs" />
     </ItemGroup>
   </Target>
