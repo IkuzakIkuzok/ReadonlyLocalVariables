@@ -42,7 +42,7 @@ namespace ReadonlyLocalVariables
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
 
-            context.RegisterSyntaxNodeAction(AnalyzeNode,
+            context.RegisterSyntaxNodeAction(AnalyzeAssignmentNode,
                 SyntaxKind.AddAssignmentExpression,
                 SyntaxKind.AndAssignmentExpression,
                 SyntaxKind.CoalesceAssignmentExpression,
@@ -56,9 +56,13 @@ namespace ReadonlyLocalVariables
                 SyntaxKind.SimpleAssignmentExpression,
                 SyntaxKind.SubtractAssignmentExpression
             );
+
+            context.RegisterSyntaxNodeAction(AnalyzeOutParameterNode,
+                SyntaxKind.Argument
+            );
         } // override public void Initialize (AnalysisContext)
 
-        private static async void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        private static async void AnalyzeAssignmentNode(SyntaxNodeAnalysisContext context)
         {
             var semanticModel = context.SemanticModel;
             if (semanticModel == null) return;
@@ -73,7 +77,27 @@ namespace ReadonlyLocalVariables
             var name = leftSymbol.Name ?? string.Empty;
             if (await CheckMutableRulePatterns(node, name, context.CancellationToken)) return;
             context.ReportDiagnostic(Diagnostic.Create(Rule, node.GetLocation(), name));
-        } // private static void AnalyzeNode (SyntaxNodeAnalysisContext)
+        } // private static void AnalyzeAssignmentNode (SyntaxNodeAnalysisContext)
+
+        private static async void AnalyzeOutParameterNode(SyntaxNodeAnalysisContext context)
+        {
+            var semanticModel = context.SemanticModel;
+            if (semanticModel == null) return;
+
+            var node = (ArgumentSyntax)context.Node;
+            if (node.GetFirstToken().Kind() != SyntaxKind.OutKeyword) return;  // only when containing `out` keyword
+            if (node.ChildNodes().OfType<DeclarationExpressionSyntax>().Any()) return;  // exclude `out var`
+
+            var variable = node.ChildNodes().Last();
+            if (variable == null) return;
+            var symbol = semanticModel.GetSymbolInfo(variable).Symbol;
+            if (symbol == null) return;
+            var declaringSyntax = symbol.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+            if (!CheckIfDeclarationIsLocal(declaringSyntax)) return;
+            var name = symbol.Name;
+            if (await CheckMutableRulePatterns(node, name, context.CancellationToken)) return;
+            context.ReportDiagnostic(Diagnostic.Create(Rule, node.GetLocation(), name));
+        } // private static async void AnalyzeOutParameterNode (SyntaxNodeAnalysisContext)
 
         private static bool CheckIfDeclarationIsLocal(SyntaxNode? declaringSyntax)
         {

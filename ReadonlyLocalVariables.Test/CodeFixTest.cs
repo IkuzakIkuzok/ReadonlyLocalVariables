@@ -465,5 +465,81 @@ class C
                             .WithLocation(0);
             await Verifier.VerifyCodeFixAsync(source, fixedSource, NEW_VARIABLE, expected);
         } // public async Task CompoundAssignmentWithClassMember ()
+
+        [TestMethod]
+        public async Task OutParameter()
+        {
+            var source = @"
+using System;
+
+class C
+{
+    int i = 0;
+
+    void M()
+    {
+        var i = 0;
+        int.TryParse(""1"", {|#0:out i|});
+        Console.WriteLine(i);
+        Console.WriteLine(this.i);
+    }
+}
+";
+
+            var fixedSource = @"
+using System;
+
+class C
+{
+    int i = 0;
+
+    void M()
+    {
+        var i = 0;
+        int.TryParse(""1"", out var i1);
+        Console.WriteLine(i1);
+        Console.WriteLine(this.i);
+    }
+}
+";
+
+            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+                            .WithArguments("i")
+                            .WithLocation(0);
+            await Verifier.VerifyCodeFixAsync(source, fixedSource, NEW_VARIABLE, expected);
+        } // public async Task OutParameter ()
+
+        [TestMethod]
+        public async Task AddAttributeForOutParameter()
+        {
+            var source = @"
+class C
+{
+    void M()
+    {
+        var i = 0;
+        int.TryParse(""1"", {|#0:out i|});
+    }
+}
+";
+
+            var fixedSource = @"using ReadonlyLocalVariables;
+
+class C
+{
+    [ReassignableVariable(""i"")]
+    void M()
+    {
+        var i = 0;
+        int.TryParse(""1"", out i);
+    }
+}
+";
+
+            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+                            .WithArguments("i")
+                            .WithLocation(0);
+            await Verifier.VerifyCodeFixAsync(source, fixedSource, ADD_ATTRIBUTE, expected);
+        } // public async Task AddAttributeForOutParameter ()
     } // public sealed class CodeFixTest
 } // namespace ReadonlyLocalVariables.Test

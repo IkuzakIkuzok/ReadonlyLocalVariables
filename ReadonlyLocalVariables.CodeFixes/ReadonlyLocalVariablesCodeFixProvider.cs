@@ -13,6 +13,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace ReadonlyLocalVariables
 {
@@ -22,7 +23,7 @@ namespace ReadonlyLocalVariables
         private static readonly Regex re_identifierSuffix = new(@"(\d+)$");
 
         override public ImmutableArray<string> FixableDiagnosticIds
-            => ImmutableArray.Create("RO0001");
+            => ImmutableArray.Create(ReadonlyLocalVariablesAnalyzer.DiagnosticId);
 
         override public FixAllProvider GetFixAllProvider()
             => WellKnownFixAllProviders.BatchFixer;
@@ -33,27 +34,57 @@ namespace ReadonlyLocalVariables
 
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
-            var assignment = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<AssignmentExpressionSyntax>().First();
+            var assignments = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<AssignmentExpressionSyntax>();
+            if (assignments.Any())
+            {
+                var assignment = assignments.First();
 
-            // Creates new local localDeclaration statement to remove assignment expression.
-            context.RegisterCodeFix(
-                CodeAction.Create(
-                    CodeFixResources.NewVariable,
-                    c => MakeNewVariable(context.Document, assignment, c),
-                    nameof(CodeFixResources.NewVariable)
-                ),
-                diagnostic
-            );
+                // Creates new local localDeclaration statement to remove assignment expression.
+                context.RegisterCodeFix(
+                    CodeAction.Create(
+                        CodeFixResources.NewVariable,
+                        c => MakeNewVariable(context.Document, assignment, c),
+                        nameof(CodeFixResources.NewVariable)
+                    ),
+                    diagnostic
+                );
 
-            // Adds an attribute to allow reassignment.
-            context.RegisterCodeFix(
-                CodeAction.Create(
-                    CodeFixResources.AddAttribute,
-                    c => AddAttribute(context.Document, assignment, c),
-                    nameof(CodeFixResources.AddAttribute)
-                ),
-                diagnostic
-            );
+                // Adds an attribute to allow reassignment.
+                context.RegisterCodeFix(
+                    CodeAction.Create(
+                        CodeFixResources.AddAttribute,
+                        c => AddAttribute(context.Document, assignment, c),
+                        nameof(CodeFixResources.AddAttribute)
+                    ),
+                    diagnostic
+                );
+            }
+            else
+            {
+                var arguments = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<ArgumentSyntax>();
+                if (!arguments.Any()) return;
+                var argument = arguments.First();
+
+                // Creates new local localDeclaration statement to remove assignment expression.
+                context.RegisterCodeFix(
+                    CodeAction.Create(
+                        CodeFixResources.NewVariable,
+                        c => FixOutParameter(context.Document, argument, c),
+                        nameof(CodeFixResources.NewVariable)
+                    ),
+                    diagnostic
+                );
+
+                // Adds an attribute to allow reassignment.
+                context.RegisterCodeFix(
+                    CodeAction.Create(
+                        CodeFixResources.AddAttribute,
+                        c => AddAttribute(context.Document, argument, c),
+                        nameof(CodeFixResources.AddAttribute)
+                    ),
+                    diagnostic
+                );
+            }
         } // override public Task RegisterCodeFixesAsync (CodeFixContext)
 
         private static SyntaxNode GetMinimumScope(SyntaxNode node, out bool isLocal)
@@ -157,6 +188,37 @@ namespace ReadonlyLocalVariables
                 _ => SyntaxKind.None,
             };
 
+        private static async Task<Document> FixOutParameter(Document document, ArgumentSyntax argument, CancellationToken cancellationToken)
+        {
+            var variable = argument.GetLastToken();
+            var oldLen = argument.ToString().Length;
+
+            var oldExpr = argument.ChildNodes().Last();
+
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var oldName = variable.ValueText;
+            var newName = CreateNewUniqueName(oldName, semanticModel, argument.SpanStart);
+
+            var declaration = SyntaxFactory.DeclarationExpression(
+                type: SyntaxFactory.IdentifierName("var"),
+                designation: SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier(newName))
+            );
+            var newArgument = argument.ReplaceNode(oldExpr, declaration).WithTriviaFrom(argument);
+
+            var oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            var trackingRoot = oldRoot.TrackNodes(argument);
+            var oldArgument = trackingRoot.GetCurrentNode(argument);
+            var newRoot = trackingRoot.ReplaceNode(oldArgument, newArgument);
+            var newLen = newArgument.ToString().Length;
+
+            var renameStartPosition = argument.Span.End - oldLen + newLen;
+            var rewriter = new IdentifierNameRewriter(renameStartPosition, oldName, newName);
+            var oldMethod = GetMinimumScope(newRoot.FindToken(renameStartPosition).Parent, out var _);
+            var newMethod = rewriter.Visit(oldMethod);
+
+            return document.WithSyntaxRoot(newRoot.ReplaceNode(oldMethod, newMethod));
+        } // private static async Task<Document> FixOutParameter (Document, ArgumentSyntax, CancellationToken)
+
         private static string CreateNewUniqueName(string oldName, SemanticModel semanticModel, int start)
         {
             var m = re_identifierSuffix.Match(oldName);
@@ -171,27 +233,40 @@ namespace ReadonlyLocalVariables
             } while (true);
         } // private static string CreateNewUniqueName (string, SemanticModel, int)
 
-
         private static async Task<Document> AddAttribute(Document document, AssignmentExpressionSyntax assignment, CancellationToken cancellationToken)
         {
             var node = assignment.Parent;
+            var leftOperand = assignment.Left;
+            var name = leftOperand.ChildTokens().First().ValueText;
 
+            return await AddAtribute(document, node, name, cancellationToken);
+        } // private static async Task<Document> AddAttribute (Document, AssignmentExpressionSyntax, CancellationToken)
+
+        private static async Task<Document> AddAttribute(Document document, ArgumentSyntax argument, CancellationToken cancellationToken)
+        {
+            var node = argument.Parent;
+            var variable = argument.GetLastToken();
+            var name = variable.ValueText;
+
+            return await AddAtribute(document, node, name, cancellationToken);
+        } // private static async Task<Document> AddAttribute (Document, ArgumentSyntax, CancellationToken)
+
+        private static async Task<Document> AddAtribute(Document document, SyntaxNode node, string name, CancellationToken cancellationToken)
+        {
             var oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var compilationUnitSyntax = (CompilationUnitSyntax)oldRoot.TrackNodes(node);
             var usings = compilationUnitSyntax.Usings.Select(directive => directive.Name.ToString());
-            if (!usings.Where(name => name == nameof(ReadonlyLocalVariables)).Any())
+            if (!usings.Where(ns => ns == nameof(ReadonlyLocalVariables)).Any())
             {
-                var name = SyntaxFactory.IdentifierName(nameof(ReadonlyLocalVariables));
-                compilationUnitSyntax = compilationUnitSyntax.AddUsings(SyntaxFactory.UsingDirective(name));
+                var ns = SyntaxFactory.IdentifierName(nameof(ReadonlyLocalVariables));
+                compilationUnitSyntax = compilationUnitSyntax.AddUsings(SyntaxFactory.UsingDirective(ns));
             }
 
             node = GetMinimumScope(compilationUnitSyntax.GetCurrentNode(node), out var isClosure);
             if (node == null) return document.WithSyntaxRoot(compilationUnitSyntax);
 
-            var leftOperand = assignment.Left;
-            var oldName = leftOperand.ChildTokens().First().ValueText;
             var attrName = SyntaxFactory.IdentifierName("ReassignableVariable");
-            var attrParam = SyntaxFactory.AttributeArgument(null, null, SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(oldName)));
+            var attrParam = SyntaxFactory.AttributeArgument(null, null, SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(name)));
             var attrParams = SyntaxFactory.AttributeArgumentList(new SeparatedSyntaxList<AttributeArgumentSyntax>().Add(attrParam));
             var attribute = SyntaxFactory.Attribute(attrName, attrParams);
             var attributeList = SyntaxFactory.AttributeList(new SeparatedSyntaxList<AttributeSyntax>().Add(attribute));
@@ -201,6 +276,6 @@ namespace ReadonlyLocalVariables
             var newRoot = compilationUnitSyntax.ReplaceNode(node, newMethodDeclaration.WithLeadingTrivia(node.GetLeadingTrivia()));
 
             return document.WithSyntaxRoot(newRoot);
-        } // private static async Task<Document> AddAttribute (Document, AssignmentExpressionSyntax, CancellationToken)
+        } // private static async Document AddAtribute (Document, SyntaxNode, string name, CancellationToken)
     } // public class ReadonlyLocalVariablesCodeFixProvider : CodeFixProvider
 } // namespace ReadonlyLocalVariables
