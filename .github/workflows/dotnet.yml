@@ -25,8 +25,8 @@ jobs:
     - name: Build Analyzer
       run: dotnet build ReadonlyLocalVariables/ReadonlyLocalVariables.Analyzer.csproj --no-restore -p:langversion=latest -p:TargetFramework=netstandard2.0
     - name: Build CodeFix
-      run: dotnet build ReadonlyLocalVariables.CodeFix/ReadonlyLocalVariables.CodeFix.csproj --no-restore -p:langversion=latest -p:TargetFramework=netstandard2.0
+      run: dotnet build ReadonlyLocalVariables.CodeFixes/ReadonlyLocalVariables.CodeFixes.csproj --no-restore -p:langversion=latest -p:TargetFramework=netstandard2.0
     - name: Build Test
       run: dotnet build ReadonlyLocalVariables.Test/ReadonlyLocalVariables.Test.csproj --no-restore -p:langversion=latest -p:TargetFramework=netcoreapp3.1
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test ReadonlyLocalVariables.sln --no-build --verbosity normal
