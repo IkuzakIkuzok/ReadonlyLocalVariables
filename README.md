@@ -1,6 +1,8 @@
 
 # ReadonlyLocalVariables
 
+[![Test](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/actions/workflows/dotnet.yml/badge.svg)](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/actions/workflows/dotnet.yml)
+
 Prohibits reassignment of local variables.
 
 ## Installation
