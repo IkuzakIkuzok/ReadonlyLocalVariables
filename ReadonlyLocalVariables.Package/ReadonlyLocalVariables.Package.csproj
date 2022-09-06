@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <PackageId>ReadonlyLocalVariables</PackageId>
-    <PackageVersion>2.2.1.0</PackageVersion>
+    <PackageVersion>2.3.0.0</PackageVersion>
     <Authors>ikuzak</Authors>
     <PackageProjectUrl>https://github.com/IkuzakIkuzok/ReadonlyLocalVariables</PackageProjectUrl>
     <RepositoryUrl>https://github.com/IkuzakIkuzok/ReadonlyLocalVariables</RepositoryUrl>

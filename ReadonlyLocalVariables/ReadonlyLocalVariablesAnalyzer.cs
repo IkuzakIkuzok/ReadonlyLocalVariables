@@ -10,6 +10,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace ReadonlyLocalVariables
 {
@@ -80,17 +81,31 @@ namespace ReadonlyLocalVariables
             var node = (AssignmentExpressionSyntax)context.Node;
             if (node.Parent is ForStatementSyntax) return;
             var leftNode = node.Left;
+            if (leftNode is TupleExpressionSyntax tuple)
+            {
+                await CheckTupleNode(tuple, context);
+                return;
+            }
             var leftSymbol = semanticModel.GetSymbolInfo(leftNode).Symbol;
-            if (leftSymbol == null) return;
-            var declaringSyntax = leftSymbol.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
-            if (!CheckIfDeclarationIsLocal(declaringSyntax)) return;
-            var name = leftSymbol.Name ?? string.Empty;
-            if (await CheckMutableRulePatterns(node, name, context.CancellationToken)) return;
-            context.ReportDiagnostic(Diagnostic.Create(Rule, node.GetLocation(), name));
+            await ReportIfNecessary(leftSymbol, node, context);
         } // private static void AnalyzeAssignmentNode (SyntaxNodeAnalysisContext)
 
+        private static async Task CheckTupleNode(TupleExpressionSyntax tuple, SyntaxNodeAnalysisContext context)
+        {
+            if (tuple == null) return;
+
+            var semanticModel = context.SemanticModel;
+            if (semanticModel == null) return;
+
+            var variables = tuple.Arguments.Select(argument => argument.ChildNodes().First())
+                                           .Where(node => node is not DeclarationExpressionSyntax)
+                                           .Select(node => (node, semanticModel.GetSymbolInfo(node).Symbol));
+            foreach ((var node, var symbol) in variables)
+                await ReportIfNecessary(symbol, node, context);
+        } // private static async void CheckTupleNode (TupleExpressionSyntax, SemanticModel)
+
         /// <summary>
-        /// Analyzes <see cref="ArgumentSyntax"/> node.
+        /// Analyzes <see cref="ArgumentSyntax"/>.
         /// </summary>
         /// <param name="context">Context to analyze.</param>
         private static async void AnalyzeOutParameterNode(SyntaxNodeAnalysisContext context)
@@ -105,13 +120,39 @@ namespace ReadonlyLocalVariables
             var variable = node.ChildNodes().Last();
             if (variable == null) return;
             var symbol = semanticModel.GetSymbolInfo(variable).Symbol;
-            if (symbol == null) return;
-            var declaringSyntax = symbol.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
-            if (!CheckIfDeclarationIsLocal(declaringSyntax)) return;
-            var name = symbol.Name;
-            if (await CheckMutableRulePatterns(node, name, context.CancellationToken)) return;
-            context.ReportDiagnostic(Diagnostic.Create(Rule, node.GetLocation(), name));
+            await ReportIfNecessary(symbol, node, context);
         } // private static async void AnalyzeOutParameterNode (SyntaxNodeAnalysisContext)
+
+        /// <summary>
+        /// Checks if the reassignment is not allowed.
+        /// </summary>
+        /// <param name="symbol">The symbol to check.</param>
+        /// <param name="node">The node from which the inspection originates.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns><c>true</c> if reassignment is not allowed; otherwise, <c>false</c></returns>
+        public static async Task<bool> CheckIfVariableIsNotReassignable(ISymbol? symbol, SyntaxNode node, CancellationToken cancellationToken)
+        {
+            if (symbol == null) return false;
+            var declaringSyntax = symbol.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+            if (!CheckIfDeclarationIsLocal(declaringSyntax)) return false;
+            var name = symbol.Name;
+            if (await CheckMutableRulePatterns(node, name, cancellationToken)) return false;
+            return true;
+        } // public static async Task<bool> CheckIfInvalidReassignment (ISymbol?, SyntaxNode, CancellationToken)
+
+        /// <summary>
+        /// Reports diagnostic if necessary.
+        /// </summary>
+        /// <param name="symbol">The symbol to check.</param>
+        /// <param name="node">The node from which the inspection originates.</param>
+        /// <param name="context">Context to analyze.</param>
+        /// <returns>The <see cref="Task"/> object representing the asynchronous operation.</returns>
+        private static async Task ReportIfNecessary(ISymbol? symbol, SyntaxNode node, SyntaxNodeAnalysisContext context)
+        {
+            if (!await CheckIfVariableIsNotReassignable(symbol, node, context.CancellationToken)) return;
+            var name = symbol?.Name;
+            context.ReportDiagnostic(Diagnostic.Create(Rule, node.GetLocation(), name));
+        } // private static async Task ReportIfNecessary (ISymbol?, SyntaxNode, SyntaxNodeAnalysisContext)
 
         /// <summary>
         /// Checks if the variable declaration is a local variable declaration.
