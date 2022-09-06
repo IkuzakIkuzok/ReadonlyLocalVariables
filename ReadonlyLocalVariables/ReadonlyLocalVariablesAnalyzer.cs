@@ -101,7 +101,9 @@ namespace ReadonlyLocalVariables
 
         private static bool CheckIfDeclarationIsLocal(SyntaxNode? declaringSyntax)
         {
-            if (declaringSyntax?.Parent?.Parent is MemberDeclarationSyntax) return false;
+            if (declaringSyntax == null) return false;
+            if (declaringSyntax.Parent?.Parent is FieldDeclarationSyntax) return false;
+            if (declaringSyntax is PropertyDeclarationSyntax) return false;
 
             return true;
         } // private static bool CheckIfDeclarationIsLocal (SyntaxNode?)

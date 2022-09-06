@@ -70,10 +70,12 @@ class C
 class C
 {
     int m;
+    int P { get; set; }
 
     void M()
     {
         m = 1;
+        P = 1;
     }
 }
 ";
