@@ -7,13 +7,13 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Formatting;
+using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace ReadonlyLocalVariables
 {
@@ -34,16 +34,22 @@ namespace ReadonlyLocalVariables
 
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
-            var assignments = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<AssignmentExpressionSyntax>();
-            if (assignments.Any())
-            {
-                var assignment = assignments.First();
+            var nodes = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf();
 
-                // Creates new local localDeclaration statement to remove assignment expression.
+            void RegisterCodeFixes<TSyntaxNode>(
+                Func<Document, TSyntaxNode, CancellationToken, Task<Document>> newVariable,
+                Func<Document, TSyntaxNode, CancellationToken, Task<Document>> addAttribute
+            ) where TSyntaxNode : CSharpSyntaxNode
+            {
+                var syntaxNodes = nodes.OfType<TSyntaxNode>();
+                if (!syntaxNodes.Any()) return;
+                var syntaxNode = syntaxNodes.First();
+
+                // Creates new local variable to remove assignment expression.
                 context.RegisterCodeFix(
                     CodeAction.Create(
                         CodeFixResources.NewVariable,
-                        c => MakeNewVariable(context.Document, assignment, c),
+                        c => newVariable(context.Document, syntaxNode, c),
                         nameof(CodeFixResources.NewVariable)
                     ),
                     diagnostic
@@ -53,40 +59,23 @@ namespace ReadonlyLocalVariables
                 context.RegisterCodeFix(
                     CodeAction.Create(
                         CodeFixResources.AddAttribute,
-                        c => AddAttribute(context.Document, assignment, c),
+                        c => addAttribute(context.Document, syntaxNode, c),
                         nameof(CodeFixResources.AddAttribute)
                     ),
                     diagnostic
                 );
             }
-            else
-            {
-                var arguments = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<ArgumentSyntax>();
-                if (!arguments.Any()) return;
-                var argument = arguments.First();
 
-                // Creates new local localDeclaration statement to remove assignment expression.
-                context.RegisterCodeFix(
-                    CodeAction.Create(
-                        CodeFixResources.NewVariable,
-                        c => FixOutParameter(context.Document, argument, c),
-                        nameof(CodeFixResources.NewVariable)
-                    ),
-                    diagnostic
-                );
-
-                // Adds an attribute to allow reassignment.
-                context.RegisterCodeFix(
-                    CodeAction.Create(
-                        CodeFixResources.AddAttribute,
-                        c => AddAttribute(context.Document, argument, c),
-                        nameof(CodeFixResources.AddAttribute)
-                    ),
-                    diagnostic
-                );
-            }
+            RegisterCodeFixes<AssignmentExpressionSyntax>(MakeNewVariable, AddAttribute);
+            RegisterCodeFixes<ArgumentSyntax>(MakeNewVariable, AddAttribute);
         } // override public Task RegisterCodeFixesAsync (CodeFixContext)
 
+        /// <summary>
+        /// Finds the smallest scope that includes the specified node.
+        /// </summary>
+        /// <param name="node">The target node.</param>
+        /// <param name="isLocal">A value indicating whether the scope is a local function.</param>
+        /// <returns>Scope that includes <paramref name="node"/>.</returns>
         private static SyntaxNode GetMinimumScope(SyntaxNode node, out bool isLocal)
         {
             isLocal = false;
@@ -99,8 +88,17 @@ namespace ReadonlyLocalVariables
             }
             isLocal = node is LocalFunctionStatementSyntax;
             return node;
-        }
+        } // private static SyntaxNode GetMinimumScope (SyntaxNode, out bool)
 
+        #region new variable
+
+        /// <summary>
+        /// Adds a new variable declaration instead of reassignment.
+        /// </summary>
+        /// <param name="document">The documentation to be rewritten.</param>
+        /// <param name="assignment">The assignment to be rewritten.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The <see cref="Task"/> object representing the asynchronous operation.</returns>
         private static async Task<Document> MakeNewVariable(Document document, AssignmentExpressionSyntax assignment, CancellationToken cancellationToken)
         {
             /*
@@ -121,7 +119,7 @@ namespace ReadonlyLocalVariables
 
             var oldLeftOperand = assignment.Left;
             var oldRightOperand = assignment.Right;
-            
+
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
             var oldName = oldLeftOperand.ChildTokens().First().ValueText;
             var newName = CreateNewUniqueName(oldName, semanticModel, assignment.SpanStart);
@@ -188,7 +186,14 @@ namespace ReadonlyLocalVariables
                 _ => SyntaxKind.None,
             };
 
-        private static async Task<Document> FixOutParameter(Document document, ArgumentSyntax argument, CancellationToken cancellationToken)
+        /// <summary>
+        /// Rewrite the argument using `out` to a new variable declaration using `out var`.
+        /// </summary>
+        /// <param name="document">The documentation to be rewritten.</param>
+        /// <param name="argument">The argument to be rewritten.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The <see cref="Task"/> object representing the asynchronous operation.</returns>
+        private static async Task<Document> MakeNewVariable(Document document, ArgumentSyntax argument, CancellationToken cancellationToken)
         {
             var variable = argument.GetLastToken();
             var oldLen = argument.ToString().Length;
@@ -217,8 +222,15 @@ namespace ReadonlyLocalVariables
             var newMethod = rewriter.Visit(oldMethod);
 
             return document.WithSyntaxRoot(newRoot.ReplaceNode(oldMethod, newMethod));
-        } // private static async Task<Document> FixOutParameter (Document, ArgumentSyntax, CancellationToken)
+        } // private static async Task<Document> MakeNewVariable (Document, ArgumentSyntax, CancellationToken)
 
+        /// <summary>
+        /// Creates a new unique identifier name based on the specified position.
+        /// </summary>
+        /// <param name="oldName">The old name.</param>
+        /// <param name="semanticModel">The semantic model for verifying uniqueness of identifier names.</param>
+        /// <param name="start">A reference position for verifying uniqueness.</param>
+        /// <returns>A created identifier name.</returns>
         private static string CreateNewUniqueName(string oldName, SemanticModel semanticModel, int start)
         {
             var m = re_identifierSuffix.Match(oldName);
@@ -233,6 +245,17 @@ namespace ReadonlyLocalVariables
             } while (true);
         } // private static string CreateNewUniqueName (string, SemanticModel, int)
 
+        #endregion new variable
+
+        #region add attribute
+
+        /// <summary>
+        /// Adds a ReassignableVariableAttribute to the scope containing the assignment statement.
+        /// </summary>
+        /// <param name="document">The documentation to be rewritten.</param>
+        /// <param name="assignment">The assignment to be rewritten.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The <see cref="Task"/> object representing the asynchronous operation.</returns>
         private static async Task<Document> AddAttribute(Document document, AssignmentExpressionSyntax assignment, CancellationToken cancellationToken)
         {
             var node = assignment.Parent;
@@ -242,6 +265,13 @@ namespace ReadonlyLocalVariables
             return await AddAtribute(document, node, name, cancellationToken);
         } // private static async Task<Document> AddAttribute (Document, AssignmentExpressionSyntax, CancellationToken)
 
+        /// <summary>
+        /// Adds a ReassignableVariableAttribute to the scope using the `out` argument.
+        /// </summary>
+        /// <param name="document">The documentation to be rewritten.</param>
+        /// <param name="argument">The argument to be rewritten.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The <see cref="Task"/> object representing the asynchronous operation.</returns>
         private static async Task<Document> AddAttribute(Document document, ArgumentSyntax argument, CancellationToken cancellationToken)
         {
             var node = argument.Parent;
@@ -251,6 +281,14 @@ namespace ReadonlyLocalVariables
             return await AddAtribute(document, node, name, cancellationToken);
         } // private static async Task<Document> AddAttribute (Document, ArgumentSyntax, CancellationToken)
 
+        /// <summary>
+        /// Adds a ReassignableVariableAttribute to the scope containing the specified node.
+        /// </summary>
+        /// <param name="document">The documentation to be rewritten.</param>
+        /// <param name="node">The target node.</param>
+        /// <param name="name">The name of identifier.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The <see cref="Task"/> object representing the asynchronous operation.</returns>
         private static async Task<Document> AddAtribute(Document document, SyntaxNode node, string name, CancellationToken cancellationToken)
         {
             var oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
@@ -277,5 +315,7 @@ namespace ReadonlyLocalVariables
 
             return document.WithSyntaxRoot(newRoot);
         } // private static async Document AddAtribute (Document, SyntaxNode, string name, CancellationToken)
+
+        #endregion  add attribute
     } // public class ReadonlyLocalVariablesCodeFixProvider : CodeFixProvider
 } // namespace ReadonlyLocalVariables

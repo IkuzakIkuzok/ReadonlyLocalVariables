@@ -5,13 +5,13 @@ using Microsoft.CodeAnalysis;
 
 namespace ReadonlyLocalVariables
 {
+    /// <summary>
+    /// Generates ReassignableVariableAttribute.
+    /// </summary>
     [Generator]
     public class ReassignableVariableAttributeGenerator : ISourceGenerator
     {
-        public void Initialize(GeneratorInitializationContext context)
-        {
-            
-        } // public void Initialize (GeneratorInitializationContext)
+        public void Initialize(GeneratorInitializationContext context) { }
 
         public void Execute(GeneratorExecutionContext context)
         {

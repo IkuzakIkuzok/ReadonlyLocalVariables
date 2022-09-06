@@ -8,11 +8,20 @@ using System.Linq;
 
 namespace ReadonlyLocalVariables
 {
+    /// <summary>
+    /// Rewrites identifier names.
+    /// </summary>
     internal sealed class IdentifierNameRewriter : CSharpSyntaxRewriter
     {
         private readonly int position;
         private readonly string oldName, newName;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IdentifierNameRewriter"/> class.
+        /// </summary>
+        /// <param name="position">Position at which the rewriting starts.</param>
+        /// <param name="oldName">The old identifier name.</param>
+        /// <param name="newName">The new identifier name.</param>
         internal IdentifierNameRewriter(int position, string oldName, string newName)
         {
             this.position = position;

@@ -13,9 +13,15 @@ using System.Threading.Tasks;
 
 namespace ReadonlyLocalVariables
 {
+    /// <summary>
+    /// Analyzes reassignments to local variables.
+    /// </summary>
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class ReadonlyLocalVariablesAnalyzer : DiagnosticAnalyzer
     {
+        /// <summary>
+        /// Diagnostic ID.
+        /// </summary>
         public static readonly string DiagnosticId = "RO0001";
 
         private static LocalizableResourceString GetLocalizableResourceString(string resourceName)
@@ -62,6 +68,10 @@ namespace ReadonlyLocalVariables
             );
         } // override public void Initialize (AnalysisContext)
 
+        /// <summary>
+        /// Analyzes <see cref="AssignmentExpressionSyntax"/> node.
+        /// </summary>
+        /// <param name="context">Context to analyze.</param>
         private static async void AnalyzeAssignmentNode(SyntaxNodeAnalysisContext context)
         {
             var semanticModel = context.SemanticModel;
@@ -79,6 +89,10 @@ namespace ReadonlyLocalVariables
             context.ReportDiagnostic(Diagnostic.Create(Rule, node.GetLocation(), name));
         } // private static void AnalyzeAssignmentNode (SyntaxNodeAnalysisContext)
 
+        /// <summary>
+        /// Analyzes <see cref="ArgumentSyntax"/> node.
+        /// </summary>
+        /// <param name="context">Context to analyze.</param>
         private static async void AnalyzeOutParameterNode(SyntaxNodeAnalysisContext context)
         {
             var semanticModel = context.SemanticModel;
@@ -99,6 +113,12 @@ namespace ReadonlyLocalVariables
             context.ReportDiagnostic(Diagnostic.Create(Rule, node.GetLocation(), name));
         } // private static async void AnalyzeOutParameterNode (SyntaxNodeAnalysisContext)
 
+        /// <summary>
+        /// Checks if the variable declaration is a local variable declaration.
+        /// </summary>
+        /// <param name="declaringSyntax">The declaration syntax to check.</param>
+        /// <returns><c>true</c> if the declaration is a local variable declaration;
+        /// otherwise, <c>false</c></returns>
         private static bool CheckIfDeclarationIsLocal(SyntaxNode? declaringSyntax)
         {
             if (declaringSyntax == null) return false;
@@ -108,6 +128,13 @@ namespace ReadonlyLocalVariables
             return true;
         } // private static bool CheckIfDeclarationIsLocal (SyntaxNode?)
 
+        /// <summary>
+        /// Checks to see if an attribute is set that allows reassignment to the variable.
+        /// </summary>
+        /// <param name="node">A node to start the inspection.</param>
+        /// <param name="name">The name of identifier to check.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The <see cref="Task"/> object representing the asynchronous operation.</returns>
         private static async Task<bool> CheckMutableRulePatterns(SyntaxNode node, string name, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
