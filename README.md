@@ -64,6 +64,22 @@ if (int.TryParse("1", out var i))
 
 (Permission by attribute is also possible, although not recommended.)
 
+### Tuple
+
+Assignments to tuples containing predefined local variables also result in an error.
+
+```C#
+var x = 0;
+var y = 0;
+(x, y) = (1, 2);  // Error
+```
+
+Use declarations inside tuples instead.
+
+```C#
+(var x, var y) = (1, 2);
+```
+
 ### For Statement
 
 Reassignment of local variables is not inspected in the control of `for` statements.
@@ -111,4 +127,4 @@ void Func()
 }
 ```
 
-Code fix for arguments with out parameter modifiers can be done in the same way.
+Code fix for tuples or arguments with out parameter modifiers can be done in the same way.
