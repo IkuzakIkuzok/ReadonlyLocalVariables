@@ -7,14 +7,13 @@ Prohibits reassignment of local variables.
 
 ## Installation
 
-You can download packages from [NuGet](https://www.nuget.org/packages/ReadonlyLocalVariables/).
+You can download the package from [NuGet](https://www.nuget.org/packages/ReadonlyLocalVariables/).
 
 ## Usage
 
 After installing the analyzer, reassignment to a local variable results in an error.
 If there are local variables for which you want to allow reassignment in exceptional cases,
 you can explicitly specify this by adding the `ReadonlyLocalVariables.ReassignableVariable` attribute to the method.
-
 
 ```C#
 using ReadonlyLocalVariables;
@@ -24,7 +23,7 @@ class C
 {
     private static int Field = 0;
 
-    [ReassignableVariable("reassignable")]  // Explicitly state which normal variables are allowed to be reassigned.
+    [ReassignableVariable("reassignable")]  // Explicitly state which local variables are allowed to be reassigned.
     static void Main(string[] args)
     {
         var normal = 0;
@@ -42,6 +41,17 @@ class C
         Console.WriteLine(reassignable);
         Console.WriteLine(Field);
     }
+}
+```
+
+Multiple identifier names can be specified in one attribute.
+
+```C#
+[ReassignableVariable("i", "j")]
+void M()
+{
+    var i = 0;
+    var j = 1;
 }
 ```
 
