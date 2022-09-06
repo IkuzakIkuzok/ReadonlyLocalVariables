@@ -45,6 +45,36 @@ class C
 }
 ```
 
+### `out` Parameter
+
+Passing an already declared local variable with the `out` parameter modifier is also prohibited.
+
+```C#
+var i = 0;
+if (int.TryParse("1", out i))  // Error
+    Console.WriteLine(i);
+```
+
+To avoid this error, use variable declarations with `out var`.
+
+```C#
+if (int.TryParse("1", out var i))
+    Console.WriteLine(i);
+```
+
+(Permission by attribute is also possible, although not recommended.)
+
+### For Statement
+
+Reassignment of local variables is not inspected in the control of `for` statements.
+
+```C#
+for (var i = 0; i < 10; i += 2)  // OK
+{
+    i -= 1;  // Error
+}
+```
+
 ## Code Fix
 
 The code fix function (implemented in v2.0.0) can correct a no-reassignment error in two ways.
@@ -80,3 +110,5 @@ void Func()
     Console.WriteLine(local);
 }
 ```
+
+Code fix for arguments with out parameter modifiers can be done in the same way.
