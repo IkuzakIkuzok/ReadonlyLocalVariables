@@ -280,5 +280,29 @@ class C
                 .WithLocation(0);
             await Verifier.VerifyAnalyzerAsync(test, expected);
         } // public async Task TupleWithClassMember ()
+
+        [TestMethod]
+        public async Task CheckAttributeForTuple()
+        {
+            var test = @"
+using ReadonlyLocalVariables;
+
+class C
+{
+    [ReassignableVariable(""x"")]
+    void M()
+    {
+        var x = 0;
+        var y = 0;
+        (x, {|#0:y|}) = (1, 2);
+    }
+}
+";
+
+            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+                .WithArguments("y")
+                .WithLocation(0);
+            await Verifier.VerifyAnalyzerAsync(test, expected);
+        } // public async Task CheckAttributeForTuple ()
     } // public sealed class AnalyzerTest
 } // namespace ReadonlyLocalVariables.Test

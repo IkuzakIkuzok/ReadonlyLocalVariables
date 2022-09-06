@@ -91,6 +91,16 @@ namespace ReadonlyLocalVariables
             return node;
         } // private static SyntaxNode GetMinimumScope (SyntaxNode, out bool)
 
+        /// <summary>
+        /// Checks to see if an attribute is set that allows reassignment to the variable.
+        /// </summary>
+        /// <param name="variable">A tuple of variable node and its correspond symbol.</param>
+        /// <param name="semanticModel">The semantic model to get symbol information.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns><c>true</c> if the variable is reassignable; otherwise, <c>false</c>.</returns>
+        private static bool CheckIfVariableIsNotReassignable((SyntaxNode node, ISymbol symbol) variable, SemanticModel semanticModel, CancellationToken cancellationToken)
+            => ReadonlyLocalVariablesAnalyzer.CheckIfVariableIsNotReassignable(variable.symbol, variable.node, semanticModel, cancellationToken).Result;
+
         #region new variable
 
         /// <summary>
@@ -203,14 +213,14 @@ namespace ReadonlyLocalVariables
 
             var variables = tuple.Arguments.Select(argument => argument.ChildNodes().First())
                                            .Where(node => node is not DeclarationExpressionSyntax)
-                                           .Select(node => (node, semanticModel.GetSymbolInfo(node).Symbol));
+                                           .Select(node => (node, semanticModel.GetSymbolInfo(node).Symbol))
+                                           .Where(variable => CheckIfVariableIsNotReassignable(variable, semanticModel, cancellationToken));
 
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             root = root.TrackNodes(variables.Select((variable) => variable.node));
             foreach ((var node, var symbol) in variables)
             {
                 var trackedNode = root.GetCurrentNode(node);
-                if (!await ReadonlyLocalVariablesAnalyzer.CheckIfVariableIsNotReassignable(symbol, trackedNode, cancellationToken)) continue;
 
                 var oldLen = trackedNode.ToString().Length;
                 var oldName = symbol.Name;
@@ -328,7 +338,7 @@ namespace ReadonlyLocalVariables
             var names = tuple.Arguments.Select(argument => argument.ChildNodes().First())
                                        .Where(node => node is not DeclarationExpressionSyntax)
                                        .Select(node => (node, semanticModel.GetSymbolInfo(node).Symbol))
-                                       .Where(variable => ReadonlyLocalVariablesAnalyzer.CheckIfVariableIsNotReassignable(variable.Symbol, variable.node, cancellationToken).Result)
+                                       .Where(variable => CheckIfVariableIsNotReassignable(variable, semanticModel, cancellationToken))
                                        .Select(variable => variable.Symbol.Name);
 
             return await AddAttribute(document, tuple.Parent, names, cancellationToken);

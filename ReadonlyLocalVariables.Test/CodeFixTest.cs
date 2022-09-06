@@ -546,33 +546,41 @@ class C
         public async Task Tuple()
         {
             var source = @"
+using ReadonlyLocalVariables;
 using System;
 
 class C
 {
+    [ReassignableVariable(""z"")]
     void M()
     {
         var x = 0;
         var y = 0;
-        ({|#0:x|}, {|#1:y|}) = (1, 2);
+        var z = 0;
+        ({|#0:x|}, {|#1:y|}, z) = (1, 2, 3);
         Console.WriteLine(x);
         Console.WriteLine(y);
+        Console.WriteLine(z);
     }
 }
 ";
 
             var fixedSource = @"
+using ReadonlyLocalVariables;
 using System;
 
 class C
 {
+    [ReassignableVariable(""z"")]
     void M()
     {
         var x = 0;
         var y = 0;
-        (var x1, var y1) = (1, 2);
+        var z = 0;
+        (var x1, var y1, z) = (1, 2, 3);
         Console.WriteLine(x1);
         Console.WriteLine(y1);
+        Console.WriteLine(z);
     }
 }
 ";
