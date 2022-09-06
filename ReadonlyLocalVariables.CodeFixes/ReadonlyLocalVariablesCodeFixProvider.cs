@@ -15,7 +15,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace ReadonlyLocalVariables
 {
@@ -191,6 +190,13 @@ namespace ReadonlyLocalVariables
                 _ => SyntaxKind.None,
             };
 
+        /// <summary>
+        /// Rewrites tuple elements.
+        /// </summary>
+        /// <param name="tuple">The tuple to be rewritten.</param>
+        /// <param name="document">The documentation to be rewritten.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>The <see cref="Task"/> object representing the asynchronous operation.</returns>
         private static async Task<Document> RewriteTuple(TupleExpressionSyntax tuple, Document document, CancellationToken cancellationToken)
         {
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
