@@ -383,7 +383,11 @@ namespace ReadonlyLocalVariables
         {
             var oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var compilationUnitSyntax = (CompilationUnitSyntax)oldRoot.TrackNodes(node);
-            var usings = compilationUnitSyntax.Usings.Select(directive => directive.Name.ToString());
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var usings = semanticModel.GetImportScopes(node.SpanStart, cancellationToken)
+                                      .SelectMany(importScope => importScope.Imports)
+                                      .Select(nsOrType => nsOrType.NamespaceOrType.Name);
+            
             if (!usings.Where(ns => ns == nameof(ReadonlyLocalVariables)).Any())
             {
                 var ns = SyntaxFactory.IdentifierName(nameof(ReadonlyLocalVariables));

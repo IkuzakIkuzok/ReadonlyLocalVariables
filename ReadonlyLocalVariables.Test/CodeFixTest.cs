@@ -513,6 +513,8 @@ class C
         public async Task AddAttributeForOutParameter()
         {
             var source = @"
+using ReadonlyLocalVariables;
+
 class C
 {
     void M()
@@ -523,7 +525,8 @@ class C
 }
 ";
 
-            var fixedSource = @"using ReadonlyLocalVariables;
+            var fixedSource = @"
+using ReadonlyLocalVariables;
 
 class C
 {
