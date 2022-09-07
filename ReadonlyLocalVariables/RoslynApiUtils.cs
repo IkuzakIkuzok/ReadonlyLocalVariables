@@ -4,6 +4,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -38,5 +39,37 @@ namespace ReadonlyLocalVariables
             names.Reverse();
             return string.Join(".", names);
         } // public static string GetFullyQualifiedName (this ISymbol)
+
+        /// <summary>
+        /// Gets string value from string literal syntax.
+        /// </summary>
+        /// <param name="literal">The string literal.</param>
+        /// <returns>The string value.</returns>
+        /// <exception cref="ArgumentException">"The kind of '<paramref name="literal"/>' must be StringLiteralExpression.</exception>
+        public static string GetStringValue(this LiteralExpressionSyntax literal)
+        {
+            if (!literal.IsKind(SyntaxKind.StringLiteralExpression))
+                throw new ArgumentException("The kind of 'literal' must be StringLiteralExpression.");
+
+            var text = literal.ToString();
+            if (text.StartsWith("@"))
+                text = text.Substring(1);  // Processing related to escape sequences appears to be unnecessary.
+            return text.Trim('"');
+        } // public static string GetStringValue (this LiteralExpressionSyntax)
+
+        /// <summary>
+        /// Returns a value indicating whether the symbol is a local variable.
+        /// </summary>
+        /// <param name="symbol">The symbol to check.</param>
+        /// <returns><c>true</c> if <paramref name="symbol"/> is a local variable; otherwise, <c>false</c>.</returns>
+        public static bool IsLocalVariable(this ISymbol symbol)
+        {
+            var declaringSyntax = symbol.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+            if (declaringSyntax == null) return false;
+            if (declaringSyntax.Parent?.Parent is FieldDeclarationSyntax) return false;
+            if (declaringSyntax is PropertyDeclarationSyntax) return false;
+
+            return true;
+        } // public static bool CheckIfVariableIsLocal (this ISymbol)
     } // public static class RoslynApiUtils
 } // namespace ReadonlyLocalVariables

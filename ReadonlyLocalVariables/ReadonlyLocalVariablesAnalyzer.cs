@@ -138,8 +138,7 @@ namespace ReadonlyLocalVariables
         public static async Task<bool> CheckIfVariableIsNotReassignable(ISymbol? symbol, SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken)
         {
             if (symbol == null) return false;
-            var declaringSyntax = symbol.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
-            if (!CheckIfDeclarationIsLocal(declaringSyntax)) return false;
+            if (!symbol.IsLocalVariable()) return false;
             var name = symbol.Name;
             if (await CheckMutableRulePatterns(node, semanticModel, name, cancellationToken)) return false;
             return true;
@@ -158,21 +157,6 @@ namespace ReadonlyLocalVariables
             var name = symbol?.Name;
             context.ReportDiagnostic(Diagnostic.Create(Rule, node.GetLocation(), name));
         } // private static async Task ReportIfNecessary (ISymbol?, SyntaxNode, SyntaxNodeAnalysisContext)
-
-        /// <summary>
-        /// Checks if the variable declaration is a local variable declaration.
-        /// </summary>
-        /// <param name="declaringSyntax">The declaration syntax to check.</param>
-        /// <returns><c>true</c> if the declaration is a local variable declaration;
-        /// otherwise, <c>false</c></returns>
-        private static bool CheckIfDeclarationIsLocal(SyntaxNode? declaringSyntax)
-        {
-            if (declaringSyntax == null) return false;
-            if (declaringSyntax.Parent?.Parent is FieldDeclarationSyntax) return false;
-            if (declaringSyntax is PropertyDeclarationSyntax) return false;
-
-            return true;
-        } // private static bool CheckIfDeclarationIsLocal (SyntaxNode?)
 
         /// <summary>
         /// Checks to see if an attribute is set that allows reassignment to the variable.
@@ -194,14 +178,6 @@ namespace ReadonlyLocalVariables
                 return null;
             }
 
-            static string GetString(LiteralExpressionSyntax literal)
-            {
-                var text = literal.ToString();
-                if (text.StartsWith("@"))
-                    text = text.Substring(1);  // Processing related to escape sequences appears to be unnecessary.
-                return text.Trim('"');
-            }
-
             if ((attributes = TryGetAttributes(node)) != null)
             {
                 foreach (var attribute in attributes)
@@ -209,13 +185,13 @@ namespace ReadonlyLocalVariables
                     cancellationToken.ThrowIfCancellationRequested();
                     var symbol = semanticModel.GetSymbolInfo(attribute).Symbol;
                     var attrName = symbol?.GetFullyQualifiedName();
-                    if (attrName != "ReadonlyLocalVariables.ReassignableVariableAttribute") continue;
+                    if (attrName != ReassignableVariableAttributeGenerator.ReassignableVariableAttributeName) continue;
 
                     var args = attribute.ArgumentList?.Arguments ?? Enumerable.Empty<AttributeArgumentSyntax>();
                     var names = args.Select(arg => arg.ChildNodes().First())
                                     .Cast<LiteralExpressionSyntax>()
                                     .Where(expression => expression.IsKind(SyntaxKind.StringLiteralExpression))
-                                    .Select(expression => GetString(expression));
+                                    .Select(literal => literal.GetStringValue());
 
                     if (names.Any(n => n == name)) return true;
                 }

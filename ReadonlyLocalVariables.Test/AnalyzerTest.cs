@@ -12,9 +12,9 @@ using Verifier = ReadonlyLocalVariables.Test.Verifiers.AnalyzerVerifier<Readonly
 namespace ReadonlyLocalVariables.Test
 {
     [TestClass]
-    public sealed class AnalyzerTest
+    public sealed partial class AnalyzerTest
     {
-        private static readonly string diagnosticId = ReadonlyLocalVariablesAnalyzer.DiagnosticId;
+        private static readonly string ReassignmentId = ReadonlyLocalVariablesAnalyzer.DiagnosticId;
 
         [TestMethod]
         public async Task NoDiagnostics()
@@ -37,7 +37,7 @@ class C
     }
 }
 ";
-            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+            var expected = new DiagnosticResult(ReassignmentId, DiagnosticSeverity.Error)
                             .WithArguments("i")
                             .WithLocation(0);
             await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -101,7 +101,7 @@ class C
 }
 ";
 
-            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+            var expected = new DiagnosticResult(ReassignmentId, DiagnosticSeverity.Error)
                 .WithArguments("m")
                 .WithLocation(0);
             await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -136,12 +136,12 @@ class C
 
             var expected = new List<DiagnosticResult>
             {
-                new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error).WithArguments("o").WithLocation(10)
+                new DiagnosticResult(ReassignmentId, DiagnosticSeverity.Error).WithArguments("o").WithLocation(10)
             };
 
             expected.AddRange(
                 Enumerable.Range(0, 10).Select(index =>
-                    new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+                    new DiagnosticResult(ReassignmentId, DiagnosticSeverity.Error)
                         .WithArguments("i")
                         .WithLocation(index)
                 )
@@ -166,143 +166,10 @@ class C
 }
 ";
 
-            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+            var expected = new DiagnosticResult(ReassignmentId, DiagnosticSeverity.Error)
                 .WithArguments("i")
                 .WithLocation(0);
             await Verifier.VerifyAnalyzerAsync(test, expected);
         } // public async Task ForStatement ()
-
-        [TestMethod]
-        public async Task OutParameter()
-        {
-            var test = @"
-class C
-{
-    int i;
-
-    void M()
-    {
-        var i = 0;
-        int.TryParse(""1"", {|#0:out i|});
-        int.TryParse(""1"", out this.i);
-        int.TryParse(""i"", out var j);
-    }
-}
-";
-
-            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
-                .WithArguments("i")
-                .WithLocation(0);
-            await Verifier.VerifyAnalyzerAsync(test, expected);
-        } // public async Task OutParameter ()
-
-        [TestMethod]
-        public async Task CheckAttributeForOutParameter()
-        {
-            var test = @"
-using ReadonlyLocalVariables;
-
-class C
-{
-    [ReassignableVariable(""i"")]
-    void M()
-    {
-        var i = 0;
-        int.TryParse(""1"", out i);
-    }
-}
-";
-
-            await Verifier.VerifyAnalyzerAsync(test);
-        } // public async Task CheckAttributeForOutParameter ()
-
-        [TestMethod]
-        public async Task Tuple()
-        {
-            var test = @"
-class C
-{
-    void M()
-    {
-        var x = 0;
-        var y = 0;
-        ({|#0:x|}, {|#1:y|}) = (1, 2);
-    }
-}
-";
-
-            var expectedX = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
-                .WithArguments("x")
-                .WithLocation(0);
-            var expectedY = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
-                .WithArguments("y")
-                .WithLocation(1);
-            await Verifier.VerifyAnalyzerAsync(test, expectedX, expectedY);
-        }  // public async Task Tuple ()
-
-        [TestMethod]
-        public async Task TupleOnRightSide()
-        {
-            var test = @"
-class C
-{
-    void M()
-    {
-        var i = 0;
-        var j = 1;
-        (var x, var y) = (i, j);
-    }
-}
-";
-
-            await Verifier.VerifyAnalyzerAsync(test);
-        } // public async Task TupleOnRightSide ()
-
-        [TestMethod]
-        public async Task TupleWithClassMember()
-        {
-            var test = @"
-class C
-{
-    int x;
-    int Z { get; set; }
-
-    void M()
-    {
-        var y = 0;
-        (x, {|#0:y|}, Z, var w) = (1, 2, 3, 4);
-    }
-}
-";
-
-            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
-                .WithArguments("y")
-                .WithLocation(0);
-            await Verifier.VerifyAnalyzerAsync(test, expected);
-        } // public async Task TupleWithClassMember ()
-
-        [TestMethod]
-        public async Task CheckAttributeForTuple()
-        {
-            var test = @"
-using ReadonlyLocalVariables;
-
-class C
-{
-    [ReassignableVariable(""x"")]
-    void M()
-    {
-        var x = 0;
-        var y = 0;
-        (x, {|#0:y|}) = (1, 2);
-    }
-}
-";
-
-            var expected = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
-                .WithArguments("y")
-                .WithLocation(0);
-            await Verifier.VerifyAnalyzerAsync(test, expected);
-        } // public async Task CheckAttributeForTuple ()
-    } // public sealed class AnalyzerTest
+    } // public sealed partial class AnalyzerTest
 } // namespace ReadonlyLocalVariables.Test

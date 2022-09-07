@@ -123,4 +123,16 @@
   <data name="AnalyzerTitle" xml:space="preserve">
     <value>Readonly local variable</value>
   </data>
+  <data name="UnnecessaryAttributeMessageFormat" xml:space="preserve">
+    <value>Attribute '{0}' is unnecessary.</value>
+  </data>
+  <data name="UnnecessaryAttributeTitle" xml:space="preserve">
+    <value>Unnecessary attribute</value>
+  </data>
+  <data name="UnnecessaryPermissionMessageFormat" xml:space="preserve">
+    <value>Variable '{0}' is allowed to be reassigned but has never been reassigned.</value>
+  </data>
+  <data name="UnnecessaryPermissionTitle" xml:space="preserve">
+    <value>Unnecessary permission</value>
+  </data>
 </root>

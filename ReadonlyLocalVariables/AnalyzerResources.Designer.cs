@@ -77,5 +77,41 @@ namespace ReadonlyLocalVariables {
                 return ResourceManager.GetString("AnalyzerTitle", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Attribute &apos;{0}&apos; is unnecessary. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string UnnecessaryAttributeMessageFormat {
+            get {
+                return ResourceManager.GetString("UnnecessaryAttributeMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Unnecessary attribute に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string UnnecessaryAttributeTitle {
+            get {
+                return ResourceManager.GetString("UnnecessaryAttributeTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Variable &apos;{0}&apos; is allowed to be reassigned but has never been reassigned. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string UnnecessaryPermissionMessageFormat {
+            get {
+                return ResourceManager.GetString("UnnecessaryPermissionMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Unnecessary permission に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string UnnecessaryPermissionTitle {
+            get {
+                return ResourceManager.GetString("UnnecessaryPermissionTitle", resourceCulture);
+            }
+        }
     }
 }

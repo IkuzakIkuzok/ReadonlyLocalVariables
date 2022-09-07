@@ -11,6 +11,8 @@ namespace ReadonlyLocalVariables
     [Generator]
     public class ReassignableVariableAttributeGenerator : ISourceGenerator
     {
+        public static readonly string ReassignableVariableAttributeName = "ReadonlyLocalVariables.ReassignableVariableAttribute";
+
         public void Initialize(GeneratorInitializationContext context) { }
 
         public void Execute(GeneratorExecutionContext context)
