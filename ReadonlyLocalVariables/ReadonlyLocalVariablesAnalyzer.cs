@@ -138,7 +138,19 @@ namespace ReadonlyLocalVariables
         public static async Task<bool> CheckIfVariableIsNotReassignable(ISymbol? symbol, SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken)
         {
             if (symbol == null) return false;
-            if (!symbol.IsLocalVariable()) return false;
+
+            /*
+             * | symbol         | IsLocalVariable | IsParameter | isOut | condition                             |
+             * | -------------- | --------------- | ----------- | ----- | ------------------------------------- |
+             * | local variable | true            | false       | false | !true && !(false && !false)  == false |
+             * | parameter      | false           | true        | false | !false && !(true && !false)  == false |
+             * | out parameter  | false           | true        | true  | !false && !(true && !true)   == true  |
+             * | others         | false           | false       | false | !false && !(false && !false) == true  |
+             * 
+             * `condition == true` means that this method returns `false`, i.e., the variable is reassignable.
+             */
+            if (!symbol.IsLocalVariable() && !(symbol.IsParameter(out var isOut) && !isOut)) return false;
+
             var name = symbol.Name;
             if (await CheckMutableRulePatterns(node, semanticModel, name, cancellationToken)) return false;
             return true;

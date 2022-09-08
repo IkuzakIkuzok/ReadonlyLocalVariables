@@ -122,7 +122,7 @@ namespace ReadonlyLocalVariables
 
             var variables = assignmentLefts.Concat(tupleElements).Concat(outArguments)
                                            .Select(node => semanticModel.GetSymbolInfo(node, cancellationToken).Symbol)
-                                           .Where(symbol => symbol?.IsLocalVariable() ?? false)
+                                           .Where(symbol => (symbol?.IsLocalVariable() ?? false) || ((symbol?.IsParameter(out var isOut) ?? false) && !isOut))
                                            .Select(symbol => symbol?.Name ?? string.Empty);
             return variables;
         } // private static IEnumerable<string> GetAssignedLocalVariables (SyntaxNode, SemanticModel, CancellationToken)

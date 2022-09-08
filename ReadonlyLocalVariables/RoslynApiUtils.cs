@@ -58,18 +58,39 @@ namespace ReadonlyLocalVariables
         } // public static string GetStringValue (this LiteralExpressionSyntax)
 
         /// <summary>
+        /// Gets declaring syntax of a symbol.
+        /// </summary>
+        /// <param name="symbol">The symbol.</param>
+        /// <returns>The declaring syntax.</returns>
+        public static SyntaxNode? GetDeclaringSyntax(this ISymbol symbol)
+            => symbol.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+
+        /// <summary>
         /// Returns a value indicating whether the symbol is a local variable.
         /// </summary>
         /// <param name="symbol">The symbol to check.</param>
         /// <returns><c>true</c> if <paramref name="symbol"/> is a local variable; otherwise, <c>false</c>.</returns>
         public static bool IsLocalVariable(this ISymbol symbol)
         {
-            var declaringSyntax = symbol.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+            var declaringSyntax = symbol.GetDeclaringSyntax();
             if (declaringSyntax == null) return false;
             if (declaringSyntax.Parent?.Parent is FieldDeclarationSyntax) return false;
             if (declaringSyntax is PropertyDeclarationSyntax) return false;
+            if (declaringSyntax is ParameterSyntax) return false;
 
-            return true;
+            return declaringSyntax.Parent is VariableDeclarationSyntax;
         } // public static bool CheckIfVariableIsLocal (this ISymbol)
+
+        public static bool IsParameter(this ISymbol symbol, out bool isOutParameter)
+        {
+            isOutParameter = false;
+
+            var declaringSyntax = symbol.GetDeclaringSyntax();
+            if (declaringSyntax == null) return false;
+
+            if (declaringSyntax is not ParameterSyntax) return false;
+            isOutParameter = declaringSyntax.ChildTokens().Where(token => token.IsKind(SyntaxKind.OutKeyword)).Any();
+            return true;
+        } // public static bool IsParameter (this ISymbol, out bool)
     } // public static class RoslynApiUtils
 } // namespace ReadonlyLocalVariables
