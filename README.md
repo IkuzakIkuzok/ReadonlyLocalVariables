@@ -55,7 +55,12 @@ void M()
 }
 ```
 
-### `out` Parameter
+### Parameter
+
+Values received as parameters cannot be reassigned, just like local variables.
+However, this does not apply to parameters with the `out` parameter modifier, since the value must be set before returning.
+
+### Argument with`out`
 
 Passing an already declared local variable with the `out` parameter modifier is also prohibited.
 
