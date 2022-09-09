@@ -467,7 +467,7 @@ class C
         } // public async Task CompoundAssignmentWithClassMember ()
 
         [TestMethod]
-        public async Task OutParameter()
+        public async Task ArgumentWithOut()
         {
             var source = @"
 using System;
@@ -507,10 +507,10 @@ class C
                             .WithArguments("i")
                             .WithLocation(0);
             await Verifier.VerifyCodeFixAsync(source, fixedSource, NEW_VARIABLE, expected);
-        } // public async Task OutParameter ()
+        } // public async Task ArgumentWithOut ()
 
         [TestMethod]
-        public async Task AddAttributeForOutParameter()
+        public async Task AddAttributeForArgumentWithOut()
         {
             var source = @"
 using ReadonlyLocalVariables;
@@ -543,7 +543,7 @@ class C
                             .WithArguments("i")
                             .WithLocation(0);
             await Verifier.VerifyCodeFixAsync(source, fixedSource, ADD_ATTRIBUTE, expected);
-        } // public async Task AddAttributeForOutParameter ()
+        } // public async Task AddAttributeForArgumentWithOut ()
 
         [TestMethod]
         public async Task Tuple()

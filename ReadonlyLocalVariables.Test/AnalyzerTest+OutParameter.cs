@@ -12,7 +12,7 @@ namespace ReadonlyLocalVariables.Test
     public sealed partial class AnalyzerTest
     {
         [TestMethod]
-        public async Task OutParameter()
+        public async Task ArgumentsWithOut()
         {
             var test = @"
 class C
@@ -33,10 +33,10 @@ class C
                 .WithArguments("i")
                 .WithLocation(0);
             await Verifier.VerifyAnalyzerAsync(test, expected);
-        } // public async Task OutParameter ()
+        } // public async Task ArgumentsWithOut ()
 
         [TestMethod]
-        public async Task CheckAttributeForOutParameter()
+        public async Task CheckAttributeForArgumentsWithOut()
         {
             var test = @"
 using ReadonlyLocalVariables;
@@ -53,6 +53,6 @@ class C
 ";
 
             await Verifier.VerifyAnalyzerAsync(test);
-        } // public async Task CheckAttributeForOutParameter ()
+        } // public async Task CheckAttributeForArgumentsWithOut ()
     } // public sealed partial class AnalyzerTest
 } // namespace ReadonlyLocalVariables.Test

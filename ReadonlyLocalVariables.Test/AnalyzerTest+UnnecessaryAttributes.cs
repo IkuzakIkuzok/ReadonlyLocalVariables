@@ -118,7 +118,34 @@ class C
         } // public async Task UnnecessaryAttributeForTuple ()
 
         [TestMethod]
-        public async Task UnnecessaryAttributeForOutParameter()
+        public async Task UnnecessaryAttributeForParameters()
+        {
+            var test = @"
+using ReadonlyLocalVariables;
+
+class C
+{
+    [ReassignableVariable(""x"", {|#0:""y""|}, {|#1:""z""|})]
+    void M(int x, int y, out int z)
+    {
+        x = 1;
+        z = 2;
+    }
+}
+";
+
+            var expectedY = new DiagnosticResult(UnnecessaryPermissionsId, DiagnosticSeverity.Info)
+                            .WithArguments("y")
+                            .WithLocation(0);
+            var expectedZ = new DiagnosticResult(UnnecessaryPermissionsId, DiagnosticSeverity.Info)
+                            .WithArguments("z")
+                            .WithLocation(1);
+
+            await Verifier.VerifyAnalyzerAsync(test, expectedY, expectedZ);
+        } // public async Task UnnecessaryAttributeForParameters ()
+
+        [TestMethod]
+        public async Task UnnecessaryAttributeForArgumentsWithOut()
         {
             var test = @"
 using ReadonlyLocalVariables;
@@ -146,6 +173,6 @@ class C
                             .WithLocation(1);
 
             await Verifier.VerifyAnalyzerAsync(test, expectedI, expectedK);
-        } // public async Task UnnecessaryAttributeForOutParameter ()
+        } // public async Task UnnecessaryAttributeForArgumentsWithOut ()
     } // public sealed partial class AnalyzerTest
 } // namespace ReadonlyLocalVariables.Test
