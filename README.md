@@ -106,6 +106,10 @@ for (var i = 0; i < 10; i += 2)  // OK
 }
 ```
 
+### Compound Assignment
+
+Compound assignments are also prohibited because they are assignment operations.
+
 ## Code Fix
 
 The code fix function (implemented in v2.0.0) can correct a no-reassignment error in two ways.
@@ -143,3 +147,14 @@ void Func()
 ```
 
 Code fix for tuples or arguments with out parameter modifiers can be done in the same way.
+
+### Compound Assignment
+
+Compound assignments are also modified with the appropriate formulas.
+
+```diff
+var i = 0;
+
+-i += 1;
++var i1 = i + 1;
+```
