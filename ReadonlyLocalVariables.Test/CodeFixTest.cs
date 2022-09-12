@@ -395,6 +395,58 @@ class C
         } // public async Task CompoundAssignment ()
 
         [TestMethod]
+        public async Task BooleanOperation()
+        {
+            var source = @"
+class C
+{
+    void M()
+    {
+        var i = 0;
+        var b = true;
+
+        {|#0:i &= 1|};
+        {|#1:i |= 1|};
+
+        {|#2:b &= true|};
+        {|#3:b |= true|};
+    }
+}
+";
+
+            var fixedSource = @"
+class C
+{
+    void M()
+    {
+        var i = 0;
+        var b = true;
+
+        var i1 = i & 1;
+        var i2 = i1 | 1;
+
+        var b1 = b && true;
+        var b2 = b1 || true;
+    }
+}
+";
+
+            var expectedI0 = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+                            .WithArguments("i")
+                            .WithLocation(0);
+            var expectedI1 = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+                            .WithArguments("i")
+                            .WithLocation(1);
+            var expectedB0 = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+                            .WithArguments("b")
+                            .WithLocation(2);
+            var expectedB1 = new DiagnosticResult(diagnosticId, DiagnosticSeverity.Error)
+                            .WithArguments("b")
+                            .WithLocation(3);
+            await Verifier.VerifyCodeFixAsync(source, fixedSource, NEW_VARIABLE, 2, expectedI0, expectedI1, expectedB0, expectedB1);
+        } // public async Task BooleanOperation ()
+
+        [TestMethod]
         public async Task CompoundAssignmentWithSameIdentifier()
         {
             var source = @"

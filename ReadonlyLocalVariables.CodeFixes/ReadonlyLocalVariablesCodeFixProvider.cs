@@ -138,10 +138,11 @@ namespace ReadonlyLocalVariables
             var oldName = oldLeftOperand.ChildTokens().First().ValueText;
             var newName = CreateNewUniqueName(oldName, semanticModel, assignment.SpanStart);
 
+            var rightType = semanticModel.GetTypeInfo(oldRightOperand, cancellationToken);
             var newRightOperand = assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
                 ? oldRightOperand
                 : SyntaxFactory.BinaryExpression(
-                    kind : GetSimpleExpressionKind(assignment.Kind()),
+                    kind : GetSimpleAssignmentExpressionKind(assignment.Kind(), rightType),
                     left : oldLeftOperand,
                     right: oldRightOperand
                   );
@@ -172,31 +173,30 @@ namespace ReadonlyLocalVariables
         } // private static async Task<Document> MakeNewVariable (Document, AssignmentExpressionSyntax, CancellationToken)
 
         /// <summary>
-        /// Gets <see cref="SyntaxKind"/> of simple expression corresponds to the given compound assignment expression.
+        /// Gets <see cref="SyntaxKind"/> of simple assignment expression corresponds to the given compound assignment expression.
         /// </summary>
         /// <param name="assignmentType">The <see cref="SyntaxKind"/> of compound assignment expression.</param>
-        /// <returns>The <see cref="SyntaxKind"/> of simple expression.
-        /// If <paramref name="assignmentType"/> does not represent compound assignment, <see cref="SyntaxKind.None"/>.</returns>
-        /// <remarks>Although bitwise logical products and disjunctions of value types and logical types can be distinguished as different <see cref="SyntaxKind"/>,
-        /// they are not distinguished as token sequences, and thus can be treated as either operation.
-        /// Therefore, if logical and expression or logical or expression should be the return value,
-        /// <see cref="SyntaxKind.BitwiseAndExpression"/> or <see cref="SyntaxKind.BitwiseOrExpression"/> is returned respectively.</remarks>
-        private static SyntaxKind GetSimpleExpressionKind(SyntaxKind assignmentType)
-            => assignmentType switch
+        /// <param name="type">Type information of right operand.</param>
+        /// <returns>The <see cref="SyntaxKind"/> of simple assignment expression corresponds to the given expression.</returns>
+        private static SyntaxKind GetSimpleAssignmentExpressionKind(SyntaxKind assignmentType, TypeInfo? type)
+        {
+            var isLogical = type?.Type.Name == nameof(Boolean);
+            return assignmentType switch
             {
                 SyntaxKind.AddAssignmentExpression         => SyntaxKind.AddExpression,
-                SyntaxKind.AndAssignmentExpression         => SyntaxKind.BitwiseAndExpression,
+                SyntaxKind.AndAssignmentExpression         => isLogical ? SyntaxKind.LogicalAndExpression : SyntaxKind.BitwiseAndExpression,
                 SyntaxKind.CoalesceAssignmentExpression    => SyntaxKind.CoalesceExpression,
                 SyntaxKind.DivideAssignmentExpression      => SyntaxKind.DivideExpression,
                 SyntaxKind.ExclusiveOrAssignmentExpression => SyntaxKind.ExclusiveOrExpression,
                 SyntaxKind.LeftShiftAssignmentExpression   => SyntaxKind.LeftShiftExpression,
                 SyntaxKind.ModuloAssignmentExpression      => SyntaxKind.ModuloExpression,
                 SyntaxKind.MultiplyAssignmentExpression    => SyntaxKind.MultiplyExpression,
-                SyntaxKind.OrAssignmentExpression          => SyntaxKind.BitwiseOrExpression,
+                SyntaxKind.OrAssignmentExpression          => isLogical ? SyntaxKind.LogicalOrExpression : SyntaxKind.BitwiseOrExpression,
                 SyntaxKind.RightShiftAssignmentExpression  => SyntaxKind.RightShiftAssignmentExpression,
                 SyntaxKind.SubtractAssignmentExpression    => SyntaxKind.SubtractExpression,
-                _ => SyntaxKind.None,
+                _ => assignmentType,
             };
+        } // private static SyntaxKind GetSimpleAssignmentExpressionKind (SyntaxKind, [TypeInfo?])
 
         /// <summary>
         /// Rewrites tuple elements.
