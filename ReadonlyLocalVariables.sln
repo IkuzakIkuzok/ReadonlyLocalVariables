@@ -11,6 +11,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReadonlyLocalVariables.Code
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReadonlyLocalVariables.Test", "ReadonlyLocalVariables.Test\ReadonlyLocalVariables.Test.csproj", "{30325BF9-AEDD-4E39-8E24-24A835D8AEB7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReadonlyLocalVariables.Utils", "ReadonlyLocalVariables.Utils\ReadonlyLocalVariables.Utils.csproj", "{AB4B1CF9-C998-4D43-B0B7-63B4E47F5956}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ソリューション項目", "ソリューション項目", "{7D2712BC-6954-4187-B206-099265BA1C31}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +42,10 @@ Global
 		{30325BF9-AEDD-4E39-8E24-24A835D8AEB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30325BF9-AEDD-4E39-8E24-24A835D8AEB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30325BF9-AEDD-4E39-8E24-24A835D8AEB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB4B1CF9-C998-4D43-B0B7-63B4E47F5956}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB4B1CF9-C998-4D43-B0B7-63B4E47F5956}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB4B1CF9-C998-4D43-B0B7-63B4E47F5956}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB4B1CF9-C998-4D43-B0B7-63B4E47F5956}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

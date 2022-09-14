@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ReadonlyLocalVariables\ReadonlyLocalVariables.Analyzer.csproj" />
+    <ProjectReference Include="..\ReadonlyLocalVariables.Utils\ReadonlyLocalVariables.Utils.csproj" />
   </ItemGroup>
   
   <ItemGroup>

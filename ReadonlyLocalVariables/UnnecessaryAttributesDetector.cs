@@ -73,7 +73,7 @@ namespace ReadonlyLocalVariables
                 context.ReportDiagnostic(Diagnostic.Create(AttributeRule, attribute.GetLocation(), attribute.Name));
                 return;
             }
-            var names = args.Select(arg => arg.ChildNodes().First())
+            var names = args.Select(arg => arg.GetFirstChild())
                             .Cast<LiteralExpressionSyntax>()
                             .Where(expression => expression.IsKind(SyntaxKind.StringLiteralExpression))
                             .ToList();
@@ -82,7 +82,7 @@ namespace ReadonlyLocalVariables
             if (method is not MethodDeclarationSyntax && method is not LocalFunctionStatementSyntax) return;
 
             var assignedVariavbles = GetAssignedLocalVariables(method, semanticModel, context.CancellationToken);
-            var unnecessaryArgs = names.Where(arg => !assignedVariavbles.Contains(arg.GetStringValue())).ToList();
+            var unnecessaryArgs = names.Where(arg => !assignedVariavbles.Contains(arg.ToStringValue())).ToList();
 
             if (unnecessaryArgs.Count == names.Count)
             {
@@ -92,7 +92,7 @@ namespace ReadonlyLocalVariables
             {
                 foreach (var arg in unnecessaryArgs)
                 {
-                    var name = arg.GetStringValue();
+                    var name = arg.ToStringValue();
                     context.ReportDiagnostic(Diagnostic.Create(PermissionRule, arg.GetLocation(), name));
                 }
             }
@@ -104,25 +104,25 @@ namespace ReadonlyLocalVariables
             var assignments = nodes.OfType<AssignmentExpressionSyntax>();
 
             var assignmentLefts = assignments.Select(assignment => assignment.Left)
-                                             .Where(node => node is not TupleExpressionSyntax);
+                                             .NotOfType<ExpressionSyntax, TupleExpressionSyntax>();
 
             var tupleElements = assignments.Select(assignment => assignment.Left as TupleExpressionSyntax)
                                            .Where(tuple => tuple != null)
 #pragma warning disable CS8602
                                            .Select(tuple => tuple.Arguments)
 #pragma warning restore
-                                           .SelectMany(arguments => arguments.Select(argument => argument.ChildNodes().First()))
-                                           .Where(argument => argument is not DeclarationExpressionSyntax);
+                                           .SelectMany(arguments => arguments.Select(argument => argument.GetFirstChild()))
+                                           .NotOfType<SyntaxNode, DeclarationExpressionSyntax>();
 
             var arguments = nodes.OfType<ArgumentSyntax>();
             var outArguments = arguments.Where(node => node.GetFirstToken().IsKind(SyntaxKind.OutKeyword))
                                         .Select(node => node.ChildNodes())
-                                        .Where(nodes => !nodes.OfType<DeclarationExpressionSyntax>().Any())
+                                        .Where(nodes => !nodes.Contains(typeof(DeclarationExpressionSyntax)))
                                         .Select(nodes => nodes.Last());
 
             var variables = assignmentLefts.Concat(tupleElements).Concat(outArguments)
                                            .Select(node => semanticModel.GetSymbolInfo(node, cancellationToken).Symbol)
-                                           .Where(symbol => (symbol?.IsLocalVariable() ?? false) || ((symbol?.IsParameter(out var isOut) ?? false) && !isOut))
+                                           .Where(symbol => symbol?.IsPresumedNotReassignable() ?? false)
                                            .Select(symbol => symbol?.Name ?? string.Empty);
             return variables;
         } // private static IEnumerable<string> GetAssignedLocalVariables (SyntaxNode, SemanticModel, CancellationToken)

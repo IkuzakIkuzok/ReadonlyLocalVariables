@@ -39,7 +39,7 @@ namespace ReadonlyLocalVariables
              * The definition should be verified using SemanticModel,
              * but since errors occur as nodes are rewritten, this method is used for simplicity.
              */
-            if (node.Parent.ChildNodes().First() != node) return node;
+            if (node.Parent.GetFirstChild() != node) return node;
 
             if (node.SpanStart < this.position) return node;
             var oldToken = node.GetFirstToken();

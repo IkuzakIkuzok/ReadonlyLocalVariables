@@ -98,8 +98,8 @@ namespace ReadonlyLocalVariables
         /// <param name="semanticModel">The semantic model to get symbol information.</param>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns><c>true</c> if the variable is reassignable; otherwise, <c>false</c>.</returns>
-        private static bool CheckIfVariableIsNotReassignable((SyntaxNode node, ISymbol symbol) variable, SemanticModel semanticModel, CancellationToken cancellationToken)
-            => ReadonlyLocalVariablesAnalyzer.CheckIfVariableIsNotReassignable(variable.symbol, variable.node, semanticModel, cancellationToken).Result;
+        private static bool CheckIfVariableIsNotReassignable(NodeInfo variable, SemanticModel semanticModel, CancellationToken cancellationToken)
+            => ReadonlyLocalVariablesAnalyzer.CheckIfVariableIsNotReassignable(variable.Symbol, variable.Node, semanticModel, cancellationToken);
 
         #region new variable
 
@@ -165,11 +165,8 @@ namespace ReadonlyLocalVariables
             var newLen = formattedDeclaration.ToString().Length;
 
             var renameStartPosition = assignmentStatement.GetTrailingTrivia().Span.End - oldLen + newLen;
-            var rewriter = new IdentifierNameRewriter(renameStartPosition, oldName, newName);
-            var oldMethod = GetMinimumScope(newRoot.FindToken(renameStartPosition).Parent, out var _);
-            var newMethod = rewriter.Visit(oldMethod);
 
-            return document.WithSyntaxRoot(newRoot.ReplaceNode(oldMethod, newMethod));
+            return document.WithSyntaxRoot(UpdateLocalVariableReferences(newRoot, oldName, newName, renameStartPosition));
         } // private static async Task<Document> MakeNewVariable (Document, AssignmentExpressionSyntax, CancellationToken)
 
         /// <summary>
@@ -178,7 +175,7 @@ namespace ReadonlyLocalVariables
         /// <param name="assignmentType">The <see cref="SyntaxKind"/> of compound assignment expression.</param>
         /// <param name="type">Type information of right operand.</param>
         /// <returns>The <see cref="SyntaxKind"/> of simple assignment expression corresponds to the given expression.</returns>
-        private static SyntaxKind GetSimpleAssignmentExpressionKind(SyntaxKind assignmentType, TypeInfo? type)
+        private static SyntaxKind GetSimpleAssignmentExpressionKind(SyntaxKind assignmentType, TypeInfo? type = null)
         {
             var isLogical = type?.Type.Name == nameof(Boolean);
             return assignmentType switch
@@ -209,13 +206,13 @@ namespace ReadonlyLocalVariables
         {
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-            var variables = tuple.Arguments.Select(argument => argument.ChildNodes().First())
-                                           .Where(node => node is not DeclarationExpressionSyntax)
-                                           .Select(node => (node, semanticModel.GetSymbolInfo(node).Symbol))
+            var variables = tuple.Arguments.Select(argument => argument.GetFirstChild())
+                                           .NotOfType<SyntaxNode, DeclarationExpressionSyntax>()
+                                           .Select(node => node.GetNodeInfo(semanticModel))
                                            .Where(variable => CheckIfVariableIsNotReassignable(variable, semanticModel, cancellationToken));
 
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            root = root.TrackNodes(variables.Select((variable) => variable.node));
+            root = root.TrackNodes(variables.Select(variable => variable.Node));
             foreach ((var node, var symbol) in variables)
             {
                 var trackedNode = root.GetCurrentNode(node);
@@ -232,17 +229,14 @@ namespace ReadonlyLocalVariables
                 root = root.ReplaceNode(trackedNode, declaration);
 
                 var renameStartPosition = trackedNode.Span.End - oldLen + newLen;
-                var rewriter = new IdentifierNameRewriter(renameStartPosition, oldName, newName);
-                var oldMethod = GetMinimumScope(root.FindToken(renameStartPosition).Parent, out var _);
-                var newMethod = rewriter.Visit(oldMethod);
-                root = root.ReplaceNode(oldMethod, newMethod);
+                root = UpdateLocalVariableReferences(root, oldName, newName, renameStartPosition);
             }
 
             return document.WithSyntaxRoot(root);
         } // private static async Task<Document> RewriteTuple (TupleExpressionSyntax, Document, CancellationToken)
 
         /// <summary>
-        /// Rewrite the argument using `out` to a new variable declaration using `out var`.
+        /// Rewrite the argument using <c>out</c> to a new variable declaration using <c>out var</c>.
         /// </summary>
         /// <param name="document">The documentation to be rewritten.</param>
         /// <param name="argument">The argument to be rewritten.</param>
@@ -266,17 +260,13 @@ namespace ReadonlyLocalVariables
             var newArgument = argument.ReplaceNode(oldExpr, declaration).WithTriviaFrom(argument);
 
             var oldRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var trackingRoot = oldRoot.TrackNodes(argument);
-            var oldArgument = trackingRoot.GetCurrentNode(argument);
-            var newRoot = trackingRoot.ReplaceNode(oldArgument, newArgument);
+            var newRoot = oldRoot.ReplaceNode(argument, newArgument);
             var newLen = newArgument.ToString().Length;
 
             var renameStartPosition = argument.Span.End - oldLen + newLen;
-            var rewriter = new IdentifierNameRewriter(renameStartPosition, oldName, newName);
-            var oldMethod = GetMinimumScope(newRoot.FindToken(renameStartPosition).Parent, out var _);
-            var newMethod = rewriter.Visit(oldMethod);
+            newRoot = UpdateLocalVariableReferences(newRoot, oldName, newName, renameStartPosition);
 
-            return document.WithSyntaxRoot(newRoot.ReplaceNode(oldMethod, newMethod));
+            return document.WithSyntaxRoot(newRoot);
         } // private static async Task<Document> MakeNewVariable (Document, ArgumentSyntax, CancellationToken)
 
         /// <summary>
@@ -289,7 +279,7 @@ namespace ReadonlyLocalVariables
         private static string CreateNewUniqueName(string oldName, SemanticModel semanticModel, int start)
         {
             var m = re_identifierSuffix.Match(oldName);
-            var s = m.Success ? m.Value : string.Empty;
+            var s = m.Value;
             var basename = oldName.Substring(0, oldName.Length - s.Length);
             var suffix = string.IsNullOrEmpty(s) ? 0 : int.Parse(s);
             do
@@ -299,6 +289,22 @@ namespace ReadonlyLocalVariables
                     return newName;
             } while (true);
         } // private static string CreateNewUniqueName (string, SemanticModel, int)
+
+        /// <summary>
+        /// Updates references for a local variable.
+        /// </summary>
+        /// <param name="oldRoot">The syntax root to update.</param>
+        /// <param name="oldName">The old identifier name.</param>
+        /// <param name="newName">The new identifier name.</param>
+        /// <param name="startPosition">Position at which to start updating.</param>
+        /// <returns>A new syntax root with updated references to the variable after <paramref name="startPosition"/>.</returns>
+        private static SyntaxNode UpdateLocalVariableReferences(SyntaxNode oldRoot, string oldName, string newName, int startPosition)
+        {
+            var rewriter = new IdentifierNameRewriter(startPosition, oldName, newName);
+            var oldMethod = GetMinimumScope(oldRoot.FindToken(startPosition).Parent, out var _);
+            var newMethod = rewriter.Visit(oldMethod);
+            return oldRoot.ReplaceNode(oldMethod, newMethod);
+        } // private static SyntaxNode UpdateLocalVariableReferences (SyntaxNode, string, string, int)
 
         #endregion new variable
 
@@ -333,17 +339,17 @@ namespace ReadonlyLocalVariables
         {
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-            var names = tuple.Arguments.Select(argument => argument.ChildNodes().First())
-                                       .Where(node => node is not DeclarationExpressionSyntax)
-                                       .Select(node => (node, semanticModel.GetSymbolInfo(node).Symbol))
+            var names = tuple.Arguments.Select(argument => argument.GetFirstChild())
+                                       .NotOfType<SyntaxNode, DeclarationExpressionSyntax>()
+                                       .Select(node => node.GetNodeInfo(semanticModel))
                                        .Where(variable => CheckIfVariableIsNotReassignable(variable, semanticModel, cancellationToken))
-                                       .Select(variable => variable.Symbol.Name);
+                                       .Select(variable => variable.Name);
 
             return await AddAttribute(document, tuple.Parent, names, cancellationToken);
         } // private static async Task<Document> AddAttribute (Document, TupleExpressionSyntax, CancellationToken)
 
         /// <summary>
-        /// Adds a ReassignableVariableAttribute to the scope using the `out` argument.
+        /// Adds a ReassignableVariableAttribute to the scope using the <c>out</c> argument.
         /// </summary>
         /// <param name="document">The documentation to be rewritten.</param>
         /// <param name="argument">The argument to be checked.</param>
@@ -386,26 +392,26 @@ namespace ReadonlyLocalVariables
                                       .SelectMany(importScope => importScope.Imports)
                                       .Select(nsOrType => nsOrType.NamespaceOrType.Name);
             
-            if (!usings.Where(ns => ns == nameof(ReadonlyLocalVariables)).Any())
+            if (!usings.Contains(nameof(ReadonlyLocalVariables)))
             {
                 var ns = SyntaxFactory.IdentifierName(nameof(ReadonlyLocalVariables));
                 compilationUnitSyntax = compilationUnitSyntax.AddUsings(SyntaxFactory.UsingDirective(ns));
             }
 
-            node = GetMinimumScope(compilationUnitSyntax.GetCurrentNode(node), out var isClosure);
-            if (node == null) return document.WithSyntaxRoot(compilationUnitSyntax);
+            var method = GetMinimumScope(compilationUnitSyntax.GetCurrentNode(node), out var isClosure);
+            if (method == null) return document;
 
-            static AttributeArgumentSyntax GetAttributeArgument(string name)
-                => SyntaxFactory.AttributeArgument(null, null, SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(name)));
+            static AttributeArgumentSyntax CreateAttributeArgument(string name)
+                => SyntaxFactory.AttributeArgument(null, null, name.ToLiteralExpression());
 
             var attrName = SyntaxFactory.IdentifierName("ReassignableVariable");
-            var attrParams = SyntaxFactory.AttributeArgumentList(new SeparatedSyntaxList<AttributeArgumentSyntax>().AddRange(names.Select(name => GetAttributeArgument(name))));
-            var attribute = SyntaxFactory.Attribute(attrName, attrParams);
+            var attrArgs = SyntaxFactory.AttributeArgumentList(names.Select(CreateAttributeArgument).ToSeparatedSyntaxList());
+            var attribute = SyntaxFactory.Attribute(attrName, attrArgs);
             var attributeList = SyntaxFactory.AttributeList(new SeparatedSyntaxList<AttributeSyntax>().Add(attribute));
 
-            SyntaxNode newMethodDeclaration = isClosure ? (node as LocalFunctionStatementSyntax).AddAttributeLists(attributeList)
-                                                        : (node as MethodDeclarationSyntax).AddAttributeLists(attributeList);
-            var newRoot = compilationUnitSyntax.ReplaceNode(node, newMethodDeclaration.WithLeadingTrivia(node.GetLeadingTrivia()));
+            SyntaxNode newMethodDeclaration = isClosure ? (method as LocalFunctionStatementSyntax).AddAttributeLists(attributeList)
+                                                        : (method as MethodDeclarationSyntax).AddAttributeLists(attributeList);
+            var newRoot = compilationUnitSyntax.ReplaceNode(method, newMethodDeclaration.WithLeadingTrivia(method.GetLeadingTrivia()));
 
             return document.WithSyntaxRoot(newRoot);
         } // private static async Task<Document> AddAttribute (Document document, SyntaxNode node, IEnumerable<string> names, CancellationToken cancellationToken)
