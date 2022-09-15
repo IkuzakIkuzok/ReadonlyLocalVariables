@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Options = System.Collections.Generic.Dictionary<string, object>;
 using Verifier = ReadonlyLocalVariables.Test.Verifiers.AnalyzerVerifier<ReadonlyLocalVariables.ReadonlyLocalVariablesAnalyzer>;
 
 namespace ReadonlyLocalVariables.Test
@@ -171,5 +172,19 @@ class C
                 .WithLocation(0);
             await Verifier.VerifyAnalyzerAsync(test, expected);
         } // public async Task ForStatement ()
+
+        [TestMethod]
+        public async Task TopLevelStatement()
+        {
+            var test = @"
+var i = 0;
+{|#0:i = 1|};
+";
+
+            var expected = new DiagnosticResult(ReassignmentId, DiagnosticSeverity.Error)
+                            .WithArguments("i")
+                            .WithLocation(0);
+            await Verifier.VerifyAnalyzerAsync(test, new Options() { { "OutputKind", OutputKind.ConsoleApplication } }, expected);
+        } // public async Task TopLevelStatement ()
     } // public sealed partial class AnalyzerTest
 } // namespace ReadonlyLocalVariables.Test

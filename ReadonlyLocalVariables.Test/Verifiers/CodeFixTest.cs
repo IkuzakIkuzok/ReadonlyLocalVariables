@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing.Verifiers;
+using Options = System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object>>;
 
 namespace ReadonlyLocalVariables.Test.Verifiers
 {
@@ -24,5 +25,16 @@ namespace ReadonlyLocalVariables.Test.Verifiers
                 return project.Solution;
             });
         } // ctor ()
+
+        internal CodeFixTest(Options? compilationOptions) : this()
+        {
+            this.SolutionTransforms.Add((solution, projectId) =>
+            {
+                var project = solution.GetProject(projectId);
+                if (project == null) return solution;
+                project = project.WithCompilationOptions(compilationOptions);
+                return project.Solution;
+            });
+        } // ctor (Options?)
     } // internal class CodeFixTest<TAnalyzer, TCodeFix> : CSharpCodeFixTest<TAnalyzer, TCodeFix, MSTestVerifier>
 }

@@ -56,6 +56,13 @@ namespace ReadonlyLocalVariables
                     diagnostic
                 );
 
+                /*
+                 * Do not propose permission by attribute because the functionality up to C# 10 does not allow the addition of attributes to top-level statements.
+                 * In C# 11, it may be possible to add attributes, in which case the behavior should be changed.
+                 * cf. https://github.com/dotnet/csharplang/issues/5045
+                 */
+                if (syntaxNode.AncestorsAndSelf().Contains(typeof(GlobalStatementSyntax))) return;
+
                 // Adds an attribute to allow reassignment.
                 context.RegisterCodeFix(
                     CodeAction.Create(
