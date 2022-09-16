@@ -158,3 +158,27 @@ var i = 0;
 -i += 1;
 +var i1 = i + 1;
 ```
+
+# Misc.
+
+## `CS8032`
+
+`CS8032` may occur when building a project using this analyzer.
+The following change to csproj resolves this warning.
+
+```diff
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="ReadonlyLocalVariables" Version="2.5.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
++   <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.3.0">
++     <PrivateAssets>all</PrivateAssets>
++     <IncludeAssets>runtime; build; native; contentfiles; analyzers;</IncludeAssets>
++   </PackageReference>
+  </ItemGroup>
+
+</Project>
+```
