@@ -2,6 +2,9 @@
 # ReadonlyLocalVariables
 
 [![Test](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/actions/workflows/dotnet.yml/badge.svg)](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/actions/workflows/dotnet.yml)
+[![Version](https://img.shields.io/nuget/v/ReadonlyLocalVariables?styles=flat)](https://www.nuget.org/packages/ReadonlyLocalVariables/#versions-body-tab)
+[![Download](https://img.shields.io/nuget/dt/ReadonlyLocalVariables?styles=flat)](https://www.nuget.org/packages/ReadonlyLocalVariables/#versions-body-tab)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/blob/main/LICENSE)
 
 Prohibits reassignment of local variables.
 
