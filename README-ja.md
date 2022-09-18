@@ -6,19 +6,19 @@
 [![Download](https://img.shields.io/nuget/dt/ReadonlyLocalVariables?styles=flat)](https://www.nuget.org/packages/ReadonlyLocalVariables/#versions-body-tab)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/blob/main/LICENSE)
 
-[:jp:](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/blob/main/README-ja.md)
+[:us:](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/blob/main/README.md)
 
-Prohibits reassignment of local variables.
+ローカル変数への再代入を禁止します。
 
-## Installation
+## インストール方法
 
-You can download the package from [NuGet](https://www.nuget.org/packages/ReadonlyLocalVariables/).
+[NuGet](https://www.nuget.org/packages/ReadonlyLocalVariables/)からパッケージをダウンロードすることができます。
 
-## Usage
+## 使用方法
 
-After installing the analyzer, reassignment to a local variable results in an error.
-If there are local variables for which you want to allow reassignment in exceptional cases,
-you can explicitly specify this by adding the `ReadonlyLocalVariables.ReassignableVariable` attribute to the method.
+アナライザをインストールすると，ローカル変数への再代入がエラーとなります。
+`ReadonlyLocalVariables.ReassignableVariable`属性をメソッドに追加することで，例外的に再代入を許可するローカル変数を指定することができます。
+
 
 ```C#
 using ReadonlyLocalVariables;
@@ -49,7 +49,8 @@ class C
 }
 ```
 
-Multiple identifier names can be specified in one attribute.
+1つの属性で複数の識別子名を指定することもできます。
+
 
 ```C#
 [ReassignableVariable("i", "j")]
@@ -60,66 +61,70 @@ void M()
 }
 ```
 
-### Parameter
+### パラメータ
 
-Values received as parameters cannot be reassigned, just like local variables.
-However, this does not apply to parameters with the `out` parameter modifier, since the value must be set before returning.
+パラメータとして受け取った値もローカル変数と同様に再代入が禁止されます。
+ただし，`out`パラメータ修飾子が付加されたパラメータについては，必ず値を書き換えなければならないためこの限りではありません。
 
-### Argument with `out`
+### `out`引数
 
-Passing an already declared local variable with the `out` parameter modifier is also prohibited.
+既に宣言されたローカル変数を`out`とともに引数として使用することも禁止されます。
+
 
 ```C#
 var i = 0;
-if (int.TryParse("1", out i))  // Error
+if (int.TryParse("1", out i))  // エラー
     Console.WriteLine(i);
 ```
 
-To avoid this error, use variable declarations with `out var`.
+このエラーを回避するには，`out var`による変数宣言を使用します。
+
 
 ```C#
 if (int.TryParse("1", out var i))
     Console.WriteLine(i);
 ```
 
-(Permission by attribute is also possible, although not recommended.)
+(推奨はされませんが属性による許可も利用できます。)
 
-### Tuple
+### タプル
+
+既に宣言されたローカル変数を含むタプルへの代入もエラーとなります。
 
 Assignments to tuples containing predefined local variables also result in an error.
 
 ```C#
 var x = 0;
 var y = 0;
-(x, y) = (1, 2);  // Error
+(x, y) = (1, 2);  // エラー
 ```
 
-Use declarations inside tuples instead.
+代わりに，タプル内での変数宣言を利用してください。
 
 ```C#
 (var x, var y) = (1, 2);
 ```
 
-### For Statement
+### for文
 
-Reassignment of local variables is not inspected in the control of `for` statements.
+`for`文の制御部分でのローカル変数への再代入は検査されません。
 
 ```C#
 for (var i = 0; i < 10; i += 2)  // OK
 {
-    i -= 1;  // Error
+    i -= 1;  // エラー
 }
 ```
 
-### Compound Assignment
+### 複合代入
 
-Compound assignments are also prohibited because they are assignment operations.
+複合代入も代入操作であるため禁止されます。
 
-## Code Fix
+## コード修正
 
-The code fix function (implemented in v2.0.0) can correct a no-reassignment error in two ways.
+コード修正機能により，再代入禁止エラーを2通りの方法で修正することができます。
 
-To prevent reassignment of local variable, a new local variable declaration can be added.
+ローカル変数への再代入を回避するために，新たな変数の宣言を追加することができます。
 
 ```diff
 var local = 0;
@@ -131,11 +136,11 @@ Console.WriteLine(local);
 +Console.WriteLine(local1);
 ```
 
-References below the new variable declaration are automatically updated.
-Since the automatically generated identifier names are simplified,
-it is recommended that they be refactored to appropriate names.
+新たな変数宣言以降の変数の参照は自動的に更新されます。
+自動的に生成される識別子名は簡便なものであるため，適切な名前にリファクタリングすることを推奨します。
 
-Alternatively, reassignment can be allowed by adding an attribute.
+また，属性を追加することにより再代入を許可することもできます。
+
 
 ```diff
 +using ReadonlyLocalVariables;
@@ -149,27 +154,16 @@ void Func()
     local = 1;
     Console.WriteLine(local);
 }
-```
 
-Code fix for tuples or arguments with out parameter modifiers can be done in the same way.
+タプルや`out`引数などについても同様に修正することができます。
 
-### Compound Assignment
-
-Compound assignments are also modified with the appropriate formulas.
-
-```diff
-var i = 0;
-
--i += 1;
-+var i1 = i + 1;
-```
-
-# Misc.
+# その他
 
 ## `CS8032`
 
-`CS8032` may occur when building a project using this analyzer.
-The following change to csproj resolves this warning.
+アナライザを利用するプロジェクトをビルドする際に`CS8032`が発生する場合があります。
+csprojを以下のように修正することで警告を解消できます。
+
 
 ```diff
 <Project Sdk="Microsoft.NET.Sdk">
