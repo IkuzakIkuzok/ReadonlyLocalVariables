@@ -8,7 +8,7 @@
 
 [:jp:](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/blob/main/README-ja.md)
 
-Prohibits reassignment of local variables.
+Prohibits reassignment of local variables in C#.
 
 ## Installation
 

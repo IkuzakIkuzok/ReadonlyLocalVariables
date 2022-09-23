@@ -8,7 +8,7 @@
 
 [:us:](https://github.com/IkuzakIkuzok/ReadonlyLocalVariables/blob/main/README.md)
 
-ローカル変数への再代入を禁止します。
+C#においてローカル変数への再代入を禁止します。
 
 ## インストール方法
 
